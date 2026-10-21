@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071a2b">
+  <meta name="description" content="Free static QR code generator: website links, cloud files, Wi-Fi, contact cards and more. No accounts, watermarks or QR expiry. Generate privately in your browser.">
+  <meta name="referrer" content="no-referrer">
+  <title>QR Studio — Free QR codes with no built-in expiration</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <script src="/assets/js/qr-core.js" defer></script>
+  <script src="/assets/js/utils.js" defer></script>
+  <script src="/assets/js/exports.js" defer></script>
+  <script src="/assets/js/app.js" defer></script>
+</head>
+<body>
+  <a href="#workspace" class="skip">Skip to QR generator</a>
+  <div class="top-wrap">
+    <header class="site-header shell">
+      <a class="brand" href="/" aria-label="QR Studio home"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 28 28"><path fill="currentColor" d="M1 1h11v11H1zm3 3v5h5V4zm12-3h11v11H16zm3 3v5h5V4zM1 16h11v11H1zm3 3v5h5v-5zm12-3h4v4h-4zm8 0h3v3h-3zm-4 4h4v4h-4zm-4 4h4v3h-4zm8 0h3v3h-3z" fill-rule="evenodd"/></svg></span><span>QR<span class="brand-light">Studio</span></span><span class="vtag">V1.0</span></a>
+      <nav aria-label="Main navigation"><a href="#workspace">Create QR</a><a href="#batch">Batch</a><a href="#guide">How it works</a><a href="#privacy">Privacy</a></nav>
+      <span class="top-free"><span class="green-dot" aria-hidden="true"></span> 100% free QR creation</span>
+    </header>
+    <div class="hero shell">
+      <div class="eyebrow"><span class="sparkle">✦</span> NO SUBSCRIPTIONS. NO WATERMARKS. NO TRICKS.</div>
+      <h1>Make a QR code.<br><span>Keep it yours.</span></h1>
+      <p>Clean, printable QR codes that never expire on their own. Your links and information stay in your browser, not on our servers.</p>
+      <div class="hero-chips"><span>✓ Static &amp; permanent</span><span>✓ Private by design</span><span>✓ PNG · SVG · PDF</span></div>
+    </div>
+  </div>
+  <main class="shell">
+    <section id="workspace" class="workspace" aria-label="QR code workspace">
+      <div class="panel editor-panel">
+        <div class="panel-heading"><div><div class="overline">01 / CREATE</div><h2>Choose your QR type</h2><p>One scan, the right destination.</p></div></div>
+        <div class="mode-tabs" role="tablist" aria-label="Choose QR type">
+          <button type="button" role="tab" class="mode active" data-mode-select="url" aria-selected="true">🔗 <span>Website</span></button>
+          <button type="button" role="tab" class="mode" data-mode-select="file" aria-selected="false">📄 <span>File link</span></button>
+          <button type="button" role="tab" class="mode" data-mode-select="text" aria-selected="false">✍️ <span>Text</span></button>
+          <button type="button" role="tab" class="mode" data-mode-select="wifi" aria-selected="false">📶 <span>Wi-Fi</span></button>
+          <button type="button" role="tab" class="mode" data-mode-select="contact" aria-selected="false">👤 <span>Contact</span></button>
+          <button type="button" role="tab" class="mode" data-mode-select="email" aria-selected="false">✉️ <span>Email</span></button>
+          <button type="button" role="tab" class="mode" data-mode-select="phone" aria-selected="false">📞 <span>Phone</span></button>
+          <button type="button" role="tab" class="mode" data-mode-select="sms" aria-selected="false">💬 <span>SMS</span></button>
+        </div>
+        <div class="form-region">
+          <section data-mode-panel="url" class="mode-panel"><label for="urlValue">Website URL <small>Required</small></label><input id="urlValue" data-field="url" type="url" placeholder="https://yourwebsite.com" value="https://example.com" autocomplete="url"><p class="field-hint">Paste a complete HTTPS or HTTP link. QR Studio never adds an expiring redirect.</p></section>
+          <section data-mode-panel="file" class="mode-panel" hidden>
+            <label for="fileValue">Public file sharing link <small>Required</small></label><input id="fileValue" data-field="url" type="url" placeholder="https://drive.google.com/file/d/.../view">
+            <p class="field-hint">Use a shareable link from a provider you control, not a temporary download URL.</p>
+            <div class="file-helper"><label for="localFile" class="small-label">Need help with a file on your device?</label><input id="localFile" type="file" aria-describedby="fileHelp"><div id="fileHelp" class="muted tiny">Only reads the file name and size locally. It does not upload the file.</div><div id="fileStatus" class="file-status" role="status"></div></div>
+            <div class="provider-help"><span>Free hosting options</span><a href="https://drive.google.com/" target="_blank" rel="noopener noreferrer">Google Drive ↗</a><a href="https://onedrive.live.com/" target="_blank" rel="noopener noreferrer">OneDrive ↗</a><a href="https://www.dropbox.com/" target="_blank" rel="noopener noreferrer">Dropbox ↗</a></div>
+            <details class="help-details"><summary>How to make a shareable Google Drive link</summary><ol><li>Upload your file to Google Drive.</li><li>Select the file, then click <strong>Share</strong>.</li><li>Choose <strong>General access → Anyone with the link → Viewer</strong> (if allowed by your account).</li><li>Copy that link and paste it above.</li><li>Test the link in an incognito/private browser window before printing the QR.</li></ol></details>
+          </section>
+          <section data-mode-panel="text" class="mode-panel" hidden><label for="textValue">Text to encode</label><textarea id="textValue" data-field="text" rows="4" maxlength="3000" placeholder="Type the message you want people to read…"></textarea><p class="field-hint">Short text works best. Long text creates denser QR codes.</p></section>
+          <section data-mode-panel="wifi" class="mode-panel" hidden><div class="two-fields"><div><label for="ssidValue">Network name (SSID)</label><input id="ssidValue" data-field="ssid" placeholder="My Wi-Fi"></div><div><label for="securityValue">Security</label><select id="securityValue" data-field="security"><option value="WPA">WPA/WPA2/WPA3</option><option value="WEP">WEP (legacy)</option><option value="nopass">Open network</option></select></div></div><label for="passwordValue">Wi-Fi password</label><input id="passwordValue" data-field="password" type="password" autocomplete="off" placeholder="Network password"><label class="inline-check"><input id="hiddenValue" data-field="hidden" type="checkbox"> Hidden network</label><p class="field-hint">Password stays on your device; anyone with the QR can retrieve it. Share carefully.</p></section>
+          <section data-mode-panel="contact" class="mode-panel" hidden><div class="two-fields"><div><label for="nameValue">Full name *</label><input id="nameValue" data-field="name" placeholder="Jane Doe"></div><div><label for="orgValue">Organization</label><input id="orgValue" data-field="organization" placeholder="Company / University"></div></div><div class="two-fields"><div><label for="contactPhoneValue">Phone</label><input id="contactPhoneValue" data-field="phone" type="tel" placeholder="+1 555 000 0000"></div><div><label for="contactEmailValue">Email</label><input id="contactEmailValue" data-field="email" type="email" placeholder="hello@example.com"></div></div><label for="websiteValue">Website</label><input id="websiteValue" data-field="website" type="url" placeholder="https://example.com"></section>
+          <section data-mode-panel="email" class="mode-panel" hidden><label for="emailValue">To email *</label><input id="emailValue" data-field="email" type="email" placeholder="hello@example.com"><label for="subjectValue">Subject (optional)</label><input id="subjectValue" data-field="subject" placeholder="Hello!"><label for="bodyValue">Message (optional)</label><textarea id="bodyValue" data-field="body" rows="3" placeholder="Write your email..."></textarea></section>
+          <section data-mode-panel="phone" class="mode-panel" hidden><label for="phoneValue">Phone number *</label><input id="phoneValue" data-field="phone" type="tel" placeholder="+1 555 000 0000"></section>
+          <section data-mode-panel="sms" class="mode-panel" hidden><label for="smsPhone">Mobile number *</label><input id="smsPhone" data-field="phone" type="tel" placeholder="+1 555 000 0000"><label for="smsBody">Message (optional)</label><textarea id="smsBody" data-field="message" rows="3" placeholder="Your text message..."></textarea></section>
+        </div>
+        <div class="section-divider"></div>
+        <div class="settings-heading"><div><div class="overline">02 / CUSTOMIZE</div><h2>Make it yours</h2></div><button id="resetDesign" class="text-button" type="button">Reset design</button></div>
+        <div class="settings-grid">
+          <div class="color-field"><label for="fg">QR color</label><div class="color-choose"><input type="color" id="fg" value="#12263c" aria-label="QR foreground color"><code id="fgHex">#12263C</code></div></div>
+          <div class="color-field"><label for="bg">Background</label><div class="color-choose"><input type="color" id="bg" value="#ffffff" aria-label="QR background color"><code id="bgHex">#FFFFFF</code></div></div>
+          <div><label for="ecc">Error correction</label><select id="ecc"><option value="L">Low (L)</option><option value="M">Medium (M)</option><option value="Q">Quartile (Q)</option><option value="H" selected>High (H) — recommended</option></select></div>
+          <div><label for="resolution">PNG size</label><select id="resolution"><option value="1024">About 1,024 px</option><option value="2048" selected>About 2,048 px</option><option value="3072">About 3,072 px</option></select></div>
+        </div>
+        <div class="logo-field"><label for="logoFile"><strong>Optional center logo</strong><small>PNG, JPG, WebP · max 2 MB · requires high correction</small></label><input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp"><button type="button" id="clearLogo" class="text-button" hidden>Remove</button></div>
+        <label for="pdfTitle">Print title (PDF)</label><input id="pdfTitle" maxlength="65" value="Scan to open" placeholder="Scan to view the poster">
+        <div class="note caution" id="contrastNote" hidden role="status"></div>
+      </div>
+      <div class="panel preview-panel"><div class="preview-heading"><div class="overline">YOUR QR CODE</div><span id="previewState" class="status-badge">Ready to scan</span></div>
+        <div class="qr-holder"><canvas id="qrCanvas" width="320" height="320" aria-label="Generated QR code preview" role="img"></canvas><div id="qrPlaceholder" class="placeholder" hidden>Enter your information to create a QR code.</div></div>
+        <div id="feedback" class="feedback" role="status" aria-live="polite">Your QR code updates automatically.</div>
+        <div class="info-card"><div class="info-card-top"><strong>Validity report</strong><span class="small-dot"></span></div><div class="info-line"><span>QR code expiration</span><strong id="qrExpiry">Never</strong></div><div class="info-line"><span>Destination</span><strong id="destinationProvider">Website</strong></div><div class="info-line"><span>Access expiration</span><strong id="linkExpiry">Not verified</strong></div><div class="info-line"><span>Data size</span><strong id="dataBytes">—</strong></div><p id="expiryExplanation">The QR code itself has no expiry. Its destination must remain available.</p></div>
+        <div class="download-area"><div class="overline">03 / DOWNLOAD</div><div class="download-grid"><button id="savePng" class="primary-action" type="button">↓ PNG</button><button id="saveSvg" class="secondary-action" type="button">↓ SVG</button><button id="savePdf" class="secondary-action" type="button">↓ PDF</button></div><button id="verify" class="outline-action" type="button">✓ Check QR readability</button><button id="saveHistory" class="text-button centered" type="button">＋ Save to this browser's history</button><div class="muted tiny centered">Never use QR Studio to store passwords or confidential material in browser history.</div></div>
+      </div>
+    </section>
+    <section id="batch" class="wide-panel"><div class="batch-copy"><div class="overline">BONUS / BATCH MODE</div><h2>Twenty-five links. One ZIP.</h2><p>Paste one URL per line. Generate a package of individually named PNG and SVG codes without uploading a single link. The 25-item limit is per batch, not a daily limit.</p><label for="batchLinks">Website links (one per line)</label><textarea id="batchLinks" rows="4" placeholder="https://example.com\nhttps://example.org"></textarea><div class="batch-actions"><button type="button" id="batchCreate" class="primary-action">Generate ZIP bundle →</button><span id="batchStatus" role="status" aria-live="polite"></span></div></div><div class="batch-icon" aria-hidden="true"><span>QR</span><span>01 / 25</span></div></section>
+    <section id="history" class="history-area"><div class="section-header"><div class="overline">LOCAL HISTORY</div><h2>Saved on this device</h2><p>Only codes you deliberately save appear here. Wi-Fi, contact, phone, email and SMS entries cannot be saved.</p></div><button id="clearHistory" class="text-button" type="button">Clear history</button><div id="historyList" class="history-list"><p class="muted">No codes saved yet.</p></div></section>
+    <section id="guide" class="guide-area"><div class="section-header"><div class="overline">USEFUL TO KNOW</div><h2>Honest answers about expiration.</h2></div><div class="guide-grid"><article><span class="guide-index">01</span><h3>Do QR codes expire?</h3><p>No. QR Studio generates static codes with no subscription or built-in expiration. A link can still become invalid if its target disappears.</p></article><article><span class="guide-index">02</span><h3>What about large files?</h3><p>Even a small PDF cannot realistically fit inside a QR. Upload it to a cloud service, allow viewing through a shared link, and paste the link here. We don't host files.</p></article><article><span class="guide-index">03</span><h3>Can someone edit a QR later?</h3><p>Static QR data never changes. You can replace the file behind a stable link if your cloud provider preserves that URL; changing the URL requires a new QR.</p></article><article><span class="guide-index">04</span><h3>Is free really free?</h3><p>Yes. No login, QR limits, watermarks or payment features. QR creation works in your browser. A cloud provider may have its own storage limits.</p></article></div></section>
+    <section id="privacy" class="privacy-strip"><div><span class="lock">♙</span><strong>Private by design</strong><span>Your QR payload is generated locally. No backend, cookies, analytics or file uploads. Saved history stays in this browser until you clear it.</span></div><span class="lock-text">OPEN SOURCE · PHASE 1</span></section>
+  </main>
+  <footer class="footer shell"><div class="brand footer-brand">▦ QR<span class="brand-light">Studio</span></div><p>Generate freely. Scan confidently. Built to keep the important things simple.</p><span>Phase 1 • Static QR codes only</span></footer>
+</body>
+</html>
