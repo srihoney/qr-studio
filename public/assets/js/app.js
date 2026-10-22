@@ -1,4 +1,4 @@
-/* QR Studio Phase 1: static browser-only QR generation. */
+/* QR Studio Phase 2: static browser-only QR generation. */
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
@@ -6,7 +6,7 @@ const U=window.QRStudioUtils, X=window.QRStudioExports;
 const state={mode:'url',matrix:null,payload:'',logo:null,logoData:null,historyKey:'qrstudio_history_v1'};
 const outputBtns=[$('savePng'),$('saveSvg'),$('savePdf'),$('verify'),$('saveHistory')];
 function readFields(){const panel=document.querySelector(`[data-mode-panel="${state.mode}"]`);const f={};panel.querySelectorAll('[data-field]').forEach(el=>f[el.dataset.field]=el.type==='checkbox'?el.checked:el.value);return f;}
-function settings(){return {fg:$('fg').value,bg:$('bg').value,ecc:$('ecc').value,logo:state.logo,logoData:state.logoData};}
+function settings(){return {fg:$('fg').value,bg:$('bg').value,eye:$('eye').value,fg2:$('fg2').value,gradient:$('gradient').checked,pattern:document.querySelector('input[name="pattern"]:checked').value,finder:document.querySelector('input[name="finder"]:checked').value,frame:$('frame').value,caption:$('caption').value,ecc:$('ecc').value,logo:state.logo,logoData:state.logoData};}
 function tell(s,isError=false){$('feedback').textContent=s;$('feedback').classList.toggle('error',isError);$('previewState').classList.toggle('bad',isError);$('previewState').textContent=isError?'Needs attention':'Ready to scan';}
 function metadata(mode,payload,bytes){
   $('qrExpiry').textContent='Never';$('dataBytes').textContent=U.byteSize(bytes);
@@ -21,8 +21,8 @@ function metadata(mode,payload,bytes){
   }
 }
 function refresh(){
-  const s=settings();const ratio=U.contrast(s.fg,s.bg);
-  $('fgHex').textContent=s.fg.toUpperCase();$('bgHex').textContent=s.bg.toUpperCase();
+  const s=settings();const ratio=Math.min(U.contrast(s.fg,s.bg), U.contrast(s.eye,s.bg),s.gradient?U.contrast(s.fg2,s.bg):100);
+  $('fgHex').textContent=s.fg.toUpperCase();$('bgHex').textContent=s.bg.toUpperCase();$('eyeHex').textContent=s.eye.toUpperCase();$('fg2Hex').textContent=s.fg2.toUpperCase();
   const warning=$('contrastNote');warning.hidden=ratio>=4.5;warning.textContent=`Low QR/background contrast (${ratio.toFixed(2)}:1). Use darker QR modules and a lighter background; downloads are disabled until contrast reaches 4.5:1.`;
   state.matrix=null;state.payload='';outputBtns.forEach(b=>b.disabled=true);
   try{
@@ -32,7 +32,7 @@ function refresh(){
     const matrix=U.createMatrix(payload,s.ecc);
     state.matrix=matrix;state.payload=payload;
     const canvas=X.drawOnCanvas(matrix,s,720);
-    const preview=$('qrCanvas'),ctx=preview.getContext('2d');preview.width=preview.height=canvas.width;ctx.drawImage(canvas,0,0);
+    const preview=$('qrCanvas'),ctx=preview.getContext('2d');preview.width=canvas.width;preview.height=canvas.height;ctx.drawImage(canvas,0,0);
     preview.hidden=false;$('qrPlaceholder').hidden=true;
     metadata(state.mode,payload,matrix.bytes);
     outputBtns.forEach(b=>b.disabled=false);
@@ -93,7 +93,7 @@ async function createBatch(){const btn=$('batchCreate'),status=$('batchStatus');
   for(const [i,line] of lines.entries())if(!U.validWebUrl(line)){status.textContent=`Line ${i+1} is not a valid HTTP/HTTPS URL.`;return;}
   btn.disabled=true;status.textContent='Creating ZIP locally…';
   try{
-    const files=[],rows=['index,link'];const s={fg:'#12263c',bg:'#ffffff',logo:null,logoData:null};
+    const files=[],rows=['index,link'];const s={...settings(),logo:null,logoData:null,frame:'none'};
     for(let i=0;i<lines.length;i++){
       const m=U.createMatrix(U.validWebUrl(lines[i]).href,'H');const stem=`qr-${String(i+1).padStart(2,'0')}`;
       const canvas=X.drawOnCanvas(m,s,1100);files.push({name:stem+'.png',bytes:new Uint8Array(await (await X.canvasBlob(canvas)).arrayBuffer())});
@@ -117,8 +117,26 @@ document.querySelector('.mode-tabs').addEventListener('keydown',e=>{
   chooseMode(tabs[next].dataset.modeSelect);tabs[next].focus();
 });
 document.querySelectorAll('.mode-panel input, .mode-panel textarea, .mode-panel select').forEach(el=>{if(el.id!=='localFile')el.addEventListener('input',refresh);});
-['fg','bg','ecc','resolution'].forEach(id=>$(id).addEventListener('input',()=>{if(id!=='resolution')refresh();}));
-$('resetDesign').addEventListener('click',()=>{$('fg').value='#12263c';$('bg').value='#ffffff';$('ecc').value='H';$('resolution').value='2048';state.logo=null;state.logoData=null;$('logoFile').value='';$('clearLogo').hidden=true;refresh();});
+['fg','bg','eye','fg2','ecc','resolution','gradient','frame','caption'].forEach(id=>$(id).addEventListener('input',()=>{
+  $('fg2Group').hidden=!$('gradient').checked;
+  $('captionGroup').hidden=$('frame').value!=='caption';
+  if(id!=='resolution')refresh();
+}));
+document.querySelectorAll('input[name="pattern"],input[name="finder"]').forEach(el=>el.addEventListener('change',refresh));
+const colorPresets={navy:['#12263c','#12263c','#145f71'],forest:['#075d4e','#075d4e','#166c67'],royal:['#123f8a','#123f8a','#28578b'],plum:['#56316c','#56316c','#66407c'],black:['#151515','#151515','#333333']};
+document.querySelectorAll('[data-preset]').forEach(button=>button.addEventListener('click',()=>{
+  const colors=colorPresets[button.dataset.preset];$('fg').value=colors[0];$('eye').value=colors[1];$('fg2').value=colors[2];$('bg').value='#ffffff';
+  document.querySelectorAll('[data-preset]').forEach(b=>b.classList.toggle('active',b===button));refresh();
+}));
+const themeButton=$('themeToggle');
+function setTheme(theme){document.documentElement.dataset.theme=theme;themeButton.setAttribute('aria-pressed',String(theme==='dark'));themeButton.setAttribute('aria-label','Switch to '+(theme==='dark'?'light':'dark')+' mode');themeButton.title=themeButton.getAttribute('aria-label');
+  document.querySelector('meta[name="theme-color"]').content=theme==='dark'?'#071725':'#f4f8fb';
+  try{localStorage.setItem('qrstudio_theme',theme);}catch{}
+}
+let initialTheme='light';try{initialTheme=localStorage.getItem('qrstudio_theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}catch{}
+setTheme(initialTheme==='dark'?'dark':'light');
+themeButton.addEventListener('click',()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
+$('resetDesign').addEventListener('click',()=>{$('fg').value='#12263c';$('bg').value='#ffffff';$('eye').value='#12263c';$('fg2').value='#145f71';$('gradient').checked=false;$('fg2Group').hidden=true;$('frame').value='none';$('caption').value='SCAN ME';$('captionGroup').hidden=true;document.querySelector('input[name="pattern"][value="square"]').checked=true;document.querySelector('input[name="finder"][value="square"]').checked=true;document.querySelectorAll('[data-preset]').forEach(b=>b.classList.toggle('active',b.dataset.preset==='navy'));$('ecc').value='H';$('resolution').value='2048';state.logo=null;state.logoData=null;$('logoFile').value='';$('clearLogo').hidden=true;refresh();});
 $('localFile').addEventListener('change',e=>{const f=e.target.files[0];$('fileStatus').textContent=f?`${f.name} (${U.byteSize(f.size)}) selected locally. ${f.size>10*1024*1024?'For a large file,':'For this file,'} upload it to your cloud storage and paste its public viewer link above. The file is not uploaded or encoded into the QR.`:'';});
 $('logoFile').addEventListener('change',async e=>{try{const data=await loadLogo(e.target.files[0]);state.logo=data?.img||null;state.logoData=data?.data||null;if(state.logo)$('ecc').value='H';$('clearLogo').hidden=!state.logo;refresh();}catch(err){e.target.value='';state.logo=null;state.logoData=null;$('clearLogo').hidden=true;refresh();tell(err.message,true);}});
 $('clearLogo').addEventListener('click',()=>{state.logo=null;state.logoData=null;$('logoFile').value='';$('clearLogo').hidden=true;refresh();});
@@ -126,6 +144,24 @@ $('savePng').addEventListener('click',downloadPng);$('saveSvg').addEventListener
 $('verify').addEventListener('click',verify);$('saveHistory').addEventListener('click',saveHistory);
 $('clearHistory').addEventListener('click',()=>{if(confirm('Delete all QR Studio history saved in this browser?')){try{localStorage.removeItem(state.historyKey);}catch{}renderHistory();}});
 $('batchCreate').addEventListener('click',createBatch);
+$('scanImageBtn').addEventListener('click',async()=>{
+  const f=$('scanImage').files?.[0],result=$('scanResult');result.replaceChildren();
+  if(!f){result.textContent='Select an image containing a QR code first.';return;}
+  if(!['image/png','image/jpeg','image/webp'].includes(f.type)||f.size>10*1024*1024){result.textContent='Choose a PNG, JPG or WebP image smaller than 10 MB.';return;}
+  if(!('BarcodeDetector' in window)){result.textContent='Your browser does not support built-in QR decoding. Use your phone camera or another QR reader to inspect this image.';return;}
+  try{
+    const image=await createImageBitmap(f);let items=[];
+    try{const detector=new BarcodeDetector({formats:['qr_code']});items=await detector.detect(image);}
+    finally{image.close?.();}
+    if(!items.length){result.textContent='No readable QR code was detected. Try a sharper, high-contrast image.';return;}
+    const payload=items[0].rawValue||'';
+    const lead=document.createElement('strong');lead.textContent='Decoded content: ';
+    const output=document.createElement('span');output.textContent=payload;
+    result.append(lead,output);
+    const target=U.validWebUrl(payload);if(target){const link=document.createElement('a');link.href=target.href;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open decoded website ↗';result.append(link);}
+  }catch(error){result.textContent='Unable to decode this image: '+error.message;}
+});
+
 renderHistory();chooseMode('url');
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/sw.js').catch(()=>{});
 })();
