@@ -1,60 +1,122 @@
-# Deploy Phase 2 to your existing Free QR Studio website
+# QR Studio Phase 3 — GitHub + Cloudflare deployment
 
-**Production website:** https://freeqrstudio.pages.dev/  
-**Recommended approach:** Deploy and test a GitHub **preview branch**, then merge when accepted.
+**This release needs more setup than Phase 2. Do not just push it to production.** The existing public website `https://freeqrstudio.pages.dev/` should stay on `main` while Phase 3 is reviewed on its own branch. The public QR editor continues to work if hosting/email configuration is missing; the server-dependent buttons deliberately remain disabled.
 
-## Before changing anything
+## 1 — Back up the live site and create a Phase 3 branch
 
-1. Sign in to GitHub and open the repository connected to **freeqrstudio.pages.dev**. You do **not** need a new repository or a new Cloudflare Pages project.
-2. Verify `main` currently contains a top-level `public/` folder with `index.html`, `assets/`, `_headers`, and `sw.js`.
-3. Download a backup ZIP of the current GitHub `main` branch: **Code → Download ZIP**.
-4. Unzip the new Phase 2 source ZIP. Do not upload the Phase 2 ZIP as one file into `public/`; upload its **contents** with their original folder structure.
+1. Download/extract `QR_Studio_Phase3_Complete.zip`.
+2. Go to the **existing** GitHub repository connected to your Cloudflare Pages project.
+3. Download a GitHub ZIP of the current `main` branch as a backup.
+4. Make a branch named `phase3-commercial-review` from `main`.
+5. Replace the source files on that branch with the contents of the extracted Phase 3 folder, preserving the exact **root-level** folders `public/`, `functions/`, `migrations/`, `cleanup-worker/`, `tests/`, `docs/`. Do not upload the enclosing folder as another nesting level.
+6. Commit all changes. Do not merge to `main` yet.
+7. Cloudflare Pages will create a preview deployment. The initial preview may show upload/contact unavailable until you configure bindings and secrets.
 
-## Recommended: GitHub browser upload (without local developer tools)
+Current Pages settings: Framework **None**, build command **`exit 0`**, build output **`public`**, root directory **empty (repository root)**. No `npm` build is required. **Pages Functions require Git integration or a supported Wrangler deployment; do not use dashboard drag-and-drop Direct Upload.**
 
-1. In the GitHub repository, open the **branch selector** (`main`) and create a branch named `phase2-design` from `main`.
-2. On that branch, choose **Add file → Upload files**. Drag the **contents of the extracted Phase 2 package** (`public`, `docs`, `tests`, `README.md`, etc.), maintaining the paths. Review the changed-file list and commit to `phase2-design`. GitHub's browser interface behavior may vary, so check that you did not create a nested `QR_Studio_Phase2/public` directory.
-3. Open the repository root: `public/index.html` must exist. If the web interface refuses any replacements, use the Git workflow below instead of creating duplicate folders.
-4. In Cloudflare → **Workers & Pages → freeqrstudio → Deployments**, find the new nonproduction branch preview. Open its `*.pages.dev` preview URL. You may need to enable preview-branch deployments if currently disabled.
-5. Run **[ACCEPTANCE_TESTS.md](ACCEPTANCE_TESTS.md)** on that preview link.
-6. When satisfied, open a pull request from `phase2-design` into `main`, review and merge it. The existing Cloudflare Git integration should automatically deploy the new `main` commit to `https://freeqrstudio.pages.dev/`.
-7. Refresh the site after deployment; if the old UI persists, hard-refresh (`Ctrl+Shift+R`) or reopen in a private window. The updated service worker uses cache `qrstudio-static-v2.0.0`.
+## 2 — Create private storage (R2)
 
-## Alternative: Git CLI / Windows PowerShell (most reliable)
+1. Cloudflare dashboard → **R2 Object Storage** → create bucket `qrstudio-temporary-files`. Select **Standard** storage.
+2. Do not enable a public `r2.dev` endpoint or direct R2 custom-domain public access. Visitors must use `/file/<opaque-id>` so expiry is enforced.
+3. Set a bucket **lifecycle rule to delete files after 30 days** (or `uploads/` prefix after 30 days). This is a secondary safety cleanup, not the only expiry control; deletion may occur after the nominal deadline.
+4. Understand and monitor usage and any required billing setup. R2's free monthly allotment is limited.
+
+## 3 — Create metadata database (D1)
+
+From a normal Windows PowerShell with Node.js installed and authenticated Cloudflare Wrangler (`npx wrangler login`):
 
 ```powershell
-# Replace YOURNAME and REPOSITORY with the actual GitHub owner and repo.
-git clone https://github.com/YOURNAME/REPOSITORY.git
-cd REPOSITORY
-git checkout -b phase2-design
-# Copy the *contents* of the extracted Phase 2 folder here,
-# overwriting public/, docs/, README.md and tests/ as needed.
-git status
-git add public docs tests README.md LICENSE THIRD_PARTY_NOTICES.md .gitignore
-git commit -m "Phase 2: approved design, QR styling and light/dark themes"
-git push -u origin phase2-design
+npx wrangler d1 create qrstudio
 ```
 
-Create a GitHub pull request after the Cloudflare preview passes acceptance. Do **not** switch the production branch just to test the preview.
+Keep the returned **database ID** for the cleanup Worker configuration. Apply the schema remotely:
 
-## Verify Cloudflare Pages settings
+```powershell
+npx wrangler d1 execute qrstudio --remote --file=migrations/0001_init.sql
+```
 
-These are unchanged from Phase 1:
+The schema contains file IDs, randomized object locations, filenames, size, expiry, salted network-address hashes and minimal rate-control records. It does not store uploaded file bytes or contact message bodies.
 
-- Framework preset: **None**
-- Build command: **`exit 0`**
-- Build output directory: **`public`**
-- Root directory: **leave blank** (repository root)
-- Environment variables: **none**
+## 4 — Bind R2 and D1 to the existing Pages project
 
-A nested repo path like `QR_Studio_Phase2/public` would require a different output path and is not recommended. Upload files into the repository root instead.
+Cloudflare → Workers & Pages → **your existing Pages project** → **Settings → Bindings**:
 
-## If deployment fails
+- Add **R2 bucket binding** named **`FILES`**, pointing to `qrstudio-temporary-files`.
+- Add **D1 database binding** named **`DB`**, pointing to `qrstudio`.
+- Bind resources separately for Preview and Production where the dashboard requires it. Prefer *separate test buckets/databases* in Preview so tests cannot contaminate live data.
+- **Redeploy** the preview after changing bindings.
 
-- If Cloudflare returns **404**, confirm `public/index.html` exists and output directory is `public`.
-- If Cloudflare says **first deployment failed to start**, inspect the failed deployment details and GitHub integration permissions; the build command may not be the problem.
-- If CSS/JS changes do not appear, inspect the browser console for 404s and confirm service worker cache refreshed.
-- If `public` shows as an empty folder in GitHub, retry with the folder contents, not only the ZIP.
-- If there is a regression, restore `main` to its last approved commit or use GitHub **Revert**, then wait for Cloudflare's automatic production deploy.
+## 5 — Turnstile form protection
 
-Official documentation: https://developers.cloudflare.com/pages/configuration/git-integration/ and https://developers.cloudflare.com/pages/framework-guides/deploy-anything/.
+Cloudflare dashboard → **Turnstile** → Create widget for the website hostname. Configure relevant preview hostnames for testing; Cloudflare validation on the server checks the exact hostname. Keep separate test/production widgets if necessary.
+
+In Pages → Settings → Variables and Secrets, configure:
+
+| Name | Setting | Exposed to public? |
+| --- | --- | --- |
+| `TURNSTILE_SITE_KEY` | Turnstile public site key | Yes, in `/api/config` |
+| `TURNSTILE_SECRET` | Turnstile private secret | **No** |
+| `RATE_SALT` | Long, random string (e.g. password-manager generated) | **No** |
+| `ADMIN_TOKEN` | Long, random unguessable token (for takedown tool) | **No** |
+
+Private values must use **encrypted Secrets**, not public GitHub code. The site calls `/api/config` to decide whether to enable hosting/contact. Turnstile validates each submission server-side, and tokens can be used only once. A production Turnstile domain **must not be blocked by the site's CSP** (Phase 3 `_headers` already allows its scripts and frames).
+
+## 6 — Contact emails privately via Resend
+
+1. Create a free account at [Resend](https://resend.com/).
+2. Verify a domain you own in Resend by adding their DNS records in your domain's DNS dashboard (Cloudflare DNS if available). A verified sender domain is normally needed for real third-party delivery; a `.pages.dev` project URL alone does **not** create a verified email sender domain.
+3. Create a Resend API key with email-sending permission.
+4. Add these additional **encrypted Secrets** to the Pages project:
+
+| Name | Example/value |
+| --- | --- |
+| `RESEND_API_KEY` | Secret API key from Resend |
+| `RESEND_FROM` | `QR Studio <feedback@YOUR_VERIFIED_DOMAIN>` |
+| `CONTACT_TO` | **Your private recipient Gmail address** — set in dashboard only, never in code |
+
+5. Test form sending from the preview and check **inbox and spam**. The recipient address is not returned to the visitor or embedded in public assets. Resend's free tier has an email limit. Contact form is disabled when required credentials are unavailable.
+
+> IMPORTANT: If you do not own a verified sender domain, email delivery is **not ready**. Do not say the contact form works until a real message arrives.
+
+## 7 — Deploy the deletion Worker
+
+The Pages project cannot rely on its page load for deletion. Deploy the included separate cron Worker:
+
+```powershell
+cd cleanup-worker
+Copy-Item wrangler.toml.example wrangler.toml
+```
+
+Open `wrangler.toml`; replace `REPLACE_WITH_YOUR_D1_DATABASE_ID` with the ID from step 3, and adjust the bucket/database names if yours differ. Next:
+
+```powershell
+npx wrangler deploy --config wrangler.toml
+```
+
+This deploys a scheduled Worker running at **03:00 UTC every day**, deleting R2 objects whose timestamp is expired and then removing metadata rows; contact rate records older than 3 days are removed. If R2 deletion fails, the database row stays for retry. **A file is denied immediately at its recorded `expires_at` time even if cleanup executes hours later.** Enable log/error notifications for this Worker; check both R2 lifecycle rules and cron logs.
+
+The cleanup Worker uses the same R2 bucket and D1 database as the live Pages project. For Preview, use test resources or a separate test cleanup Worker. The `cleanup-worker/wrangler.toml` file is ignored by Git as a precaution; only `.example` is shipped.
+
+## 8 — Publish only after acceptance
+
+1. Run tests: `node --test tests/test-core.cjs tests/test-phase2.cjs tests/test-phase3.cjs`.
+2. Run `docs/PUBLIC_LAUNCH_ACCEPTANCE.md` including an actual 5 MB upload, 30-day expiry simulation on a **test** DB row, actual cleanup invocation, test email receipt, CSV import, light/dark and mobile tests.
+3. Verify Cloudflare usage/billing alerts and abuse/takedown procedures.
+4. Only after acceptance, merge `phase3-commercial-review` into `main`. Pages will update the **existing** `freeqrstudio.pages.dev` website. Do not create a second site.
+5. Reconfirm Production R2/D1 bindings and encrypted secrets independently of Preview bindings, then verify live file access and contact delivery.
+
+### Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| QR editor works but file/contact disabled | `/api/config` and production/preview bindings/secrets, redeploy |
+| HTTP 403 on upload/contact | Turnstile widget allowed hostname, expired/reused token, Origin header |
+| HTTP 413 on file upload | Maximum 5 MiB incl. file; malformed or oversize multipart payload |
+| HTTP 429 | Per-user daily quota, total daily/active storage cap, contact quota |
+| Link returns HTTP 410 | File has passed exactly 30 days; working as intended |
+| No email delivered | Sender-domain verification, Resend API key, CONTACT_TO, provider logs, spam |
+| Files not physically deleting | Cron deployed, correct DB/R2 bindings, Worker logs and R2 lifecycle |
+| Preview errors but main works | Configure Preview bindings/secrets separately |
+| Pages deployment failed | Verify repo root, `public` directory and included sibling `functions/` |
+
+References: [Pages bindings](https://developers.cloudflare.com/pages/functions/bindings/), [Pages functions](https://developers.cloudflare.com/pages/functions/get-started/), [Turnstile](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/), [R2 lifecycle](https://developers.cloudflare.com/r2/buckets/object-lifecycles/), [Cron triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/).

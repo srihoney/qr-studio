@@ -8,7 +8,7 @@ const pdfColor=h=>hexRgb(h).map(v=>(v/255).toFixed(4)).join(' ');
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const escapeXml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 function safeSettings(s={}){
-  return {fg:s.fg||'#12263c',bg:s.bg||'#ffffff',fg2:s.fg2||s.fg||'#12263c',eye:s.eye||s.fg||'#12263c',gradient:!!s.gradient,pattern:['square','soft','dots','tiles'].includes(s.pattern)?s.pattern:'square',finder:['square','rounded'].includes(s.finder)?s.finder:'square',frame:s.frame==='caption'?'caption':'none',caption:String(s.caption||'SCAN ME').slice(0,36),logo:s.logo||null,logoData:s.logoData||null};
+  return {fg:s.fg||'#12263c',bg:s.bg||'#ffffff',fg2:s.fg2||s.fg||'#12263c',eye:s.eye||s.fg||'#12263c',gradient:!!s.gradient,pattern:['square','soft','dots','tiles'].includes(s.pattern)?s.pattern:'square',finder:['square','rounded'].includes(s.finder)?s.finder:'square',frame:['top','bottom'].includes(s.frame)?s.frame:(s.frame==='caption'?'bottom':'none'),caption:String(s.caption||'SCAN ME').slice(0,36),logo:s.logo||null,logoData:s.logoData||null};
 }
 function shade(s,y,n){if(!s.gradient)return s.fg;const a=hexRgb(s.fg),b=hexRgb(s.fg2),t=clamp(y/n,0,1);return hex(a.map((v,i)=>v+(b[i]-v)*t));}
 function inEye(x,y,n){return (x<7&&y<7)||(x>=n-7&&y<7)||(x<7&&y>=n-7);}
@@ -26,9 +26,11 @@ function drawFinderCanvas(ctx,x,y,step,s){
 }
 function drawOnCanvas(matrix,input,pixels=720){
  const s=safeSettings(input),n=matrix.size,size=n+quiet*2,step=Math.max(1,Math.ceil(pixels/size)),px=size*step;
- const frameH=s.frame==='caption'?Math.round(step*5.3):0;
+ const frameH=s.frame!=='none'?Math.round(step*5.3):0;
  const canvas=document.createElement('canvas');canvas.width=px;canvas.height=px+frameH;
- const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.fillStyle=s.bg;ctx.fillRect(0,0,canvas.width,canvas.height);
+ const offset=s.frame==='top'?frameH:0;
+ const ctx=canvas.getContext('2d',{willReadFrequently:true});
+ ctx.fillStyle=s.bg;ctx.fillRect(0,0,canvas.width,canvas.height);ctx.translate(0,offset);
  const [scale,radius]=shapeParams(s.pattern),inset=(1-scale)/2;
  for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(matrix.data[y][x]&&!inEye(x,y,n)){
   const z=scale*step,l=(x+quiet+inset)*step,t=(y+quiet+inset)*step;
@@ -37,15 +39,16 @@ function drawOnCanvas(matrix,input,pixels=720){
  }
  for(const [x,y] of finderLocations(n))drawFinderCanvas(ctx,x,y,step,s);
  if(s.logo){const g=logoGeometry(matrix),pad=step*.7;ctx.fillStyle=s.bg;drawRect(ctx,g.x*step-pad,g.y*step-pad,g.side*step+pad*2,g.side*step+pad*2,step*.35);ctx.drawImage(s.logo,g.x*step,g.y*step,g.side*step,g.side*step);}
- if(frameH){ctx.fillStyle=s.fg;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`700 ${Math.max(13,step*2.0)}px system-ui, Arial, sans-serif`;ctx.fillText(s.caption,px/2,px+frameH*.43,px*.83);}
+ if(frameH){ctx.fillStyle=s.fg;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`700 ${Math.max(13,step*2.0)}px system-ui, Arial, sans-serif`;ctx.fillText(s.caption,px/2,s.frame==='top'?-frameH*.5:px+frameH*.43,px*.83);}
  return canvas;
 }
 function svgShape(x,y,w,h,r){if(!r)return `<rect x="${x}" y="${y}" width="${w}" height="${h}"/>`;return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/>`;}
 function svgMarkup(matrix,input){
- const s=safeSettings(input),n=matrix.size,size=n+8,height=size+(s.frame==='caption'?5.3:0);
+ const s=safeSettings(input),n=matrix.size,size=n+8,height=size+(s.frame!=='none'?5.3:0);
  let out=`<svg xmlns="http://www.w3.org/2000/svg" width="${size*20}" height="${height*20}" viewBox="0 0 ${size} ${height}">`;
  out+=`<rect width="${size}" height="${height}" fill="${s.bg}"/>`;
  if(s.gradient)out+=`<defs><linearGradient id="codefill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${s.fg}"/><stop offset="1" stop-color="${s.fg2}"/></linearGradient></defs>`;
+ if(s.frame==='top')out+='<g transform="translate(0 5.3)">';
  out+=`<g fill="${s.gradient?'url(#codefill)':s.fg}">`;
  const [scale,r]=shapeParams(s.pattern),inset=(1-scale)/2;
  for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(matrix.data[y][x]&&!inEye(x,y,n))out+=svgShape(quiet+x+inset,quiet+y+inset,scale,scale,r);
@@ -55,7 +58,8 @@ function svgMarkup(matrix,input){
  const coreR=s.finder==='rounded'?.45:s.finder==='circle'?1.5:0;
  for(const [x,y] of finderLocations(n))out+=`<g fill="${s.eye}">${svgShape(x,y,7,7,fR)}</g><g fill="${s.bg}">${svgShape(x+1,y+1,5,5,innerR)}</g><g fill="${s.eye}">${svgShape(x+2,y+2,3,3,coreR)}</g>`;
  if(s.logo&&s.logoData){const g=logoGeometry(matrix),pad=.7;out+=`<rect x="${g.x-pad}" y="${g.y-pad}" width="${g.side+2*pad}" height="${g.side+2*pad}" rx=".35" fill="${s.bg}"/><image href="${s.logoData}" x="${g.x}" y="${g.y}" width="${g.side}" height="${g.side}" preserveAspectRatio="xMidYMid meet"/>`;}
- if(s.frame==='caption')out+=`<text x="${size/2}" y="${size+3.1}" fill="${s.fg}" font-family="Arial,sans-serif" font-size="2" font-weight="bold" text-anchor="middle">${escapeXml(s.caption)}</text>`;
+ if(s.frame==='top')out+='</g>';
+ if(s.frame!=='none')out+=`<text x="${size/2}" y="${s.frame==='top'?3.2:size+3.1}" fill="${s.fg}" font-family="Arial,sans-serif" font-size="2" font-weight="bold" text-anchor="middle">${escapeXml(s.caption)}</text>`;
  return out+'</svg>';
 }
 function canvasBlob(canvas,type='image/png'){return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('Image export failed.')),type));}
@@ -68,7 +72,7 @@ function pdfPath(x,y,w,h,r){
  return `${(x+r).toFixed(4)} ${y.toFixed(4)} m ${(x+w-r).toFixed(4)} ${y.toFixed(4)} l ${(x+w-r+c).toFixed(4)} ${y.toFixed(4)} ${(x+w).toFixed(4)} ${(y+r-c).toFixed(4)} ${(x+w).toFixed(4)} ${(y+r).toFixed(4)} c ${(x+w).toFixed(4)} ${(y+h-r).toFixed(4)} l ${(x+w).toFixed(4)} ${(y+h-r+c).toFixed(4)} ${(x+w-r+c).toFixed(4)} ${(y+h).toFixed(4)} ${(x+w-r).toFixed(4)} ${(y+h).toFixed(4)} c ${(x+r).toFixed(4)} ${(y+h).toFixed(4)} l ${(x+r-c).toFixed(4)} ${(y+h).toFixed(4)} ${x.toFixed(4)} ${(y+h-r+c).toFixed(4)} ${x.toFixed(4)} ${(y+h-r).toFixed(4)} c ${x.toFixed(4)} ${(y+r).toFixed(4)} l ${x.toFixed(4)} ${(y+r-c).toFixed(4)} ${(x+r-c).toFixed(4)} ${y.toFixed(4)} ${(x+r).toFixed(4)} ${y.toFixed(4)} c h f`;
 }
 function pdfBytes(matrix,input,title='Scan to open'){
- const s=safeSettings(input),pageW=612,pageH=792,side=420,qrX=(pageW-side)/2,qrY=190,n=matrix.size,cell=side/(n+8);
+ const s=safeSettings(input),pageW=612,pageH=792,side=420,qrX=(pageW-side)/2,qrY=s.frame==='top'?166:190,n=matrix.size,cell=side/(n+8);
  const commands=['q',`${pdfColor(s.bg)} rg`,`${qrX} ${qrY} ${side} ${side} re f`];
  const [scale,radius]=shapeParams(s.pattern),inset=(1-scale)/2;
  let last='';
@@ -85,8 +89,8 @@ function pdfBytes(matrix,input,title='Scan to open'){
    commands.push(`q ${(g.side*cell).toFixed(3)} 0 0 ${(g.side*cell).toFixed(3)} ${bx.toFixed(3)} ${by.toFixed(3)} cm /Logo Do Q`);
  }
  commands.push('Q','0.13 0.18 0.26 rg','BT /F1 17 Tf',`${Math.max(40,306-Math.min(62,title.length*3.7)).toFixed(0)} 665 Td`,'('+ascii(title.slice(0,65))+') Tj','ET');
- if(s.frame==='caption')commands.push('0.16 0.22 0.27 rg','BT /F1 13 Tf',`${Math.max(90,306-Math.min(145,s.caption.length*3.5)).toFixed(0)} 166 Td`,'('+ascii(s.caption)+') Tj','ET');
- commands.push('0.37 0.43 0.50 rg','BT /F1 10 Tf','147 138 Td','(Static QR - No built-in expiration) Tj','ET');
+ if(s.frame!=='none')commands.push('0.16 0.22 0.27 rg','BT /F1 13 Tf',`${Math.max(90,306-Math.min(145,s.caption.length*3.5)).toFixed(0)} ${s.frame==='top'?601:166} Td`,'('+ascii(s.caption)+') Tj','ET');
+ commands.push('0.37 0.43 0.50 rg','BT /F1 10 Tf','147 138 Td','(QR Studio - Share responsibly) Tj','ET');
  const content=new TextEncoder().encode(commands.join('\n')+'\n');
  let objects=[];
  objects.push('<< /Type /Catalog /Pages 2 0 R >>');

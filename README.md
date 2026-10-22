@@ -1,80 +1,65 @@
-# Free QR Studio — Phase 2 (Version 2.0)
+# QR Studio — Phase 3 source package
 
-Complete source-only, static website upgrade for the existing **freeqrstudio.pages.dev** Cloudflare Pages project. Built by modifying the real Phase 1 source package, not by starting from an unrelated mockup. No build system, API key, payment system, backend, analytics, ads, or hosted-file storage.
+**Release status:** Complete Phase 3 implementation package; *production acceptance pending real Cloudflare/Turnstile/Resend integration tests*. Preserves the Phase 2 QR encoding and export engines. No EXE, installers, paid QR plans or artificial QR-generation limit.
 
-## What changed in Phase 2
+## Included features
 
-- **Keeps the approved navy/teal layout** with professional cards, hero, editor, live preview, batch tool, history, validity report, and help sections. Replaces emoji-style mode icons with consistent SVG icons.
-- **Removes numbered 01/02/03 section markers** everywhere in the interface.
-- **One-click moon/sun theme switch** in the header; it remembers the preference in browser storage, with operating-system preference as the first-visit default. It changes only the website interface, **not exported QR colors**.
-- **Sophisticated QR styling**, now supported across PNG, SVG and vector PDF:
-  - Four module patterns: Classic, Rounded, Dots, Tiles.
-  - Square and rounded finder/corner-eye styles (circular eyes deliberately excluded due to unreliable scanning).
-  - Five coordinated color themes, independent QR/background/eye colors, optional two-color vertical gradient with safety contrast checks.
-  - Local logo overlay (PNG, JPG, WebP ≤ 2 MB), with automatic High ECC when a logo is selected.
-  - Optional “SCAN ME” caption below the QR in PNG/SVG; caption also appears on PDFs when selected. PDF print title remains separately configurable.
-  - Four-module quiet zone preserved. Screenshot/export previews use the same renderers.
-- **QR Inspector:** upload an existing PNG/JPG/WebP code image and decode it *locally* in browsers with `BarcodeDetector`. Unsupported browsers offer an honest manual-scan fallback. No webcam permission requested.
-- Better desktop/mobile responsive layout, focus states, design reset, clearer expiration caveats.
-- All Phase 1 modes preserved: Website, File link, Text, Wi-Fi, Contact, Email, Phone, SMS.
-- Batch ZIP (up to 25 links per batch), optional limited browser-local history, cloud file link guidance, PNG/SVG/PDF exports, and QR readability checker preserved.
+- Approved navy/teal QR Studio design with a multi-tone animated 3D-effect logo, four aligned header links, a small sun/moon toggle, accessibility and reduced-motion support.
+- No version badge, step numbers, default-selected QR, sample QR at load, or saved history panel.
+- QR generation for URL, file, text, Wi-Fi, contact, email, phone, SMS; all generated locally in the browser.
+- File section with both **cloud links** and **first-party uploads**. Files up to 5 MiB (5,242,880 bytes) are stored in Cloudflare R2; their links stop serving content after **30 × 24 hours**. Daily cron and R2 bucket lifecycle policy provide cleanup. Cloud-file links are controlled by the external provider.
+- Compact QR styling with the existing pattern, finder/corner, palette, gradient, logo and contrast controls; top/bottom/none captions across PNG/SVG/vector PDF.
+- Batch QR from pasted URLs or local CSV with `name,url` columns (up to 25 items per batch, unlimited batches); exports named PNG/SVG plus CSV in ZIP.
+- Contact form (name/email/message) with server-side Turnstile protection, Resend delivery, and receiver configured ONLY by Cloudflare secret `CONTACT_TO`. The owner's address is absent from all website assets, public JSON responses, and repository files.
+- Publication-facing privacy and terms pages; no public Pricing or subscription pages.
+- Opt-in QR image decoding where the browser offers BarcodeDetector; no webcam permission.
 
-## Download, test, deploy
+## Architecture
 
-Read **[GITHUB_CLOUDFLARE_DEPLOYMENT.md](docs/GITHUB_CLOUDFLARE_DEPLOYMENT.md)** before replacing any production files. First push the package contents to a new `phase2-design` Git branch, review its Cloudflare **preview** URL, and merge only after acceptance.
-
-Cloudflare Pages settings for the **existing** project:
-
-| Setting | Value |
+| Path | Purpose |
 | --- | --- |
-| Framework | None |
-| Build command | `exit 0` |
-| Build output directory | `public` |
-| Root directory | Empty / repository root |
-| Required environment variables | None |
+| `public/` | Cloudflare Pages front-end; `public/` remains build output |
+| `functions/api/config.js` | Public feature flags (never returns secrets) |
+| `functions/api/upload.js` | MIME/signature check, 5 MiB cap, Turnstile, D1 quotas, R2 storage |
+| `functions/file/[id].js` | Opaque download URL, expiry check (HTTP 410), no-store attachment delivery |
+| `functions/api/contact.js` | Contact validation, D1 anti-abuse, email-provider API |
+| `functions/api/admin/delete.js` | Secret-protected early removal/moderation |
+| `functions/_lib/common.js` | Shared security/retention helpers |
+| `migrations/0001_init.sql` | D1 tables/indexes |
+| `cleanup-worker/` | Separate Cloudflare Worker cron for deletion |
+| `docs/` | Detailed deployment, QA, incident/cost and release guidance |
 
-**Existing production stays on the GitHub `main` branch until you merge Phase 2.** Cloudflare automatically deploys connected Git branches; see [Cloudflare Git integration](https://developers.cloudflare.com/pages/configuration/git-integration/).
+## How to use
 
-To test locally:
+**Always start with `docs/GITHUB_CLOUDFLARE_DEPLOYMENT.md`**. This is a backend release, not simply a replace-the-public-folder update. You must create and connect R2/D1, provision Cloudflare Turnstile, set mail credentials, and deploy the scheduled cleanup Worker before enabling public file uploads.
+
+Current build output stays `public`, root directory stays empty, build command stays `exit 0`. The `functions/` directory is a sibling of `public/` at repository root and is deployed by Cloudflare Pages Git integration.
+
+To run static UI locally (the upload/contact buttons stay disabled without configured backend):
 
 ```powershell
-cd "C:\path\to\QR_Studio_Phase2"
 py -m http.server 8000 --directory public
 ```
 
-Open `http://localhost:8000` and run [ACCEPTANCE_TESTS.md](docs/ACCEPTANCE_TESTS.md). For offline Node tests (Node 18+):
+To run automated tests with Node.js 22+:
 
 ```powershell
-node --test tests/test-core.cjs tests/test-phase2.cjs
+node --test tests/test-core.cjs tests/test-phase2.cjs tests/test-phase3.cjs
 ```
 
-Node is **only for developer tests**, not for Cloudflare deployment or QR generation.
+## Security and realistic cost boundaries
 
-## Security and limitations
+- **No free-hosting guarantee**: Cloudflare R2 has a free allowance, not unlimited free storage or requests. This project caps individual uploads at 5 MiB, 10 uploads per network address per day, about 150 MiB worldwide per day, and about 3 GiB active data. These are best-effort usage guards; monitor all platform and email-service quotas and shut off uploads if abused. R2 enablement may require billing setup.
+- **Expiry**: Requested one month is defined here as an exact 30-day period. File-serving checks are authoritative immediately at expiry; actual deletion can happen later (daily cron + R2 lifecycle failsafe).
+- **Privacy**: Static QR payloads are generated locally. Hosted files are public to anyone with the URL and are transmitted to Cloudflare. Contact messages are sent through Resend and the receiving inbox. No files are stored in Google Drive or GitHub by this app.
+- **Security controls**: secure random opaque file IDs, server-side validation, file signatures/extensions, attachment-only downloads, strict upload sizes, Turnstile, same-origin checks, rate/volume limits, headers, early moderation removal and documented abuse-handling process. These do not replace antivirus scanning, abuse monitoring, legal review or real-user testing.
+- **Do not release publicly before completing all items in `docs/PUBLIC_LAUNCH_ACCEPTANCE.md`.** Deployment/secret configuration, real mail deliverability and live expiration cleanup are NOT tested by the offline unit tests.
 
-- The QR code itself has **no expiration**; the website, file link, sharing permissions, account, network, or other destination may change or expire independently.
-- Files are **not uploaded or hosted** by Free QR Studio. For a PDF, PowerPoint, ZIP, or video, use a publicly viewable Drive/OneDrive/Dropbox link. The file picker reads *name and size only*.
-- Cloud link “expiration analysis” is a **local heuristic**, not a guaranteed expiry date, file-permission check, or external destination availability test.
-- Wi-Fi credentials can be decoded by anyone holding the QR. Do not publish private or sensitive payloads; QR history intentionally excludes several personal-data modes.
-- Rich QR styling can affect some scanners even when code contrast checks pass. **Always scan final exports on at least two phones before printing a large run**, especially if using dots, gradients, or logos.
-- QR Inspector uses native `BarcodeDetector` support; it does **not** promise image reading or camera scanning on all browsers.
-- The 25-item limit is **per batch**, not a daily, monthly or lifetime limit. QR generation itself remains unlimited.
-- No permanent first-party file hosting, automatic permission auditing, dynamic editable redirects, camera scanner, multilingual translations, or click analytics in this release.
+## References
 
-## Source layout
-
-```text
-public/index.html                  User interface
-public/assets/css/styles.css      Light/dark UI and responsive layout
-public/assets/js/app.js           Interactions, validation and themes
-public/assets/js/exports.js       Canvas/SVG/PDF and ZIP local export
-public/assets/js/utils.js         QR data builders and link metadata
-public/assets/js/qr-core.js       Vendored MIT QR encoder
-public/sw.js                       Offline static asset cache v2
-public/_headers                    Cloudflare security policy
-docs/                               Deployment, tests, release notes
-tests/                              Node regression tests
-LICENSE / THIRD_PARTY_NOTICES.md  Licensing
-```
-
-The project code is MIT licensed; the bundled QR encoder has its license in `THIRD_PARTY_NOTICES.md`.
+- [Cloudflare Pages Functions bindings](https://developers.cloudflare.com/pages/functions/bindings/)
+- [Cloudflare Pages Functions routing](https://developers.cloudflare.com/pages/functions/routing/)
+- [Cloudflare Workers cron](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
+- [R2 object lifecycles](https://developers.cloudflare.com/r2/buckets/object-lifecycles/)
+- [Turnstile server validation](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/)
+- [Resend API](https://resend.com/docs/api-reference/emails/send-email)

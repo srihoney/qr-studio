@@ -1,0 +1,16 @@
+# Copy to wrangler.toml and replace placeholders. DO NOT deploy without real IDs.
+name = "qrstudio-expiry-cleanup"
+main = "src/index.js"
+compatibility_date = "2026-10-22"
+
+[triggers]
+crons = ["0 3 * * *"]
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "qrstudio-temporary-files"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "qrstudio"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
