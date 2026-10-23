@@ -267,3 +267,58 @@ body {font-size:14px}
 .preset[data-preset="royal"]{background:linear-gradient(135deg,#1c4c9c 50%,#7b9bee 51%)}
 .preset[data-preset="plum"]{background:linear-gradient(135deg,#532a69 50%,#b68bcb 51%)}
 .preset[data-preset="black"]{background:linear-gradient(135deg,#161b22 50%,#d5dfe6 51%)}
+
+/* QR Studio layout alignment update — unified page geometry.
+   Site header, hero, editor, preview, secondary tools and footer share
+   the same responsive content width. No business logic is changed. */
+.shell {
+  width: min(1600px, calc(100% - 64px));
+  max-width: none;
+  padding-inline: 0;
+  margin-inline: auto;
+}
+.site-header, .hero, main.shell, .footer-inner {
+  box-sizing: border-box;
+}
+.hero {
+  padding-bottom: 84px;
+}
+.hero p {
+  margin-bottom: 0;
+}
+main.shell {
+  position: relative;
+  z-index: 3;
+  margin-top: -37px;
+}
+.workspace {
+  grid-template-columns: minmax(0, 1.2fr) minmax(375px, .8fr);
+  gap: 22px;
+  padding-top: 0;
+}
+.workspace > * { min-width: 0; }
+.workspace .panel {
+  box-shadow: 0 18px 44px rgba(8, 36, 56, .11);
+}
+@media (min-width: 1101px) {
+  .hero h1 { max-width: min(850px, 60%); }
+  .hero p { max-width: min(700px, 57%); }
+}
+@media (min-width: 1600px) {
+  .hero-art.premium-art { right: -1%; width: 41%; max-width: 610px; }
+}
+@media (max-width: 1100px) {
+  .workspace { grid-template-columns: minmax(0, 1.12fr) minmax(320px, .88fr); }
+}
+@media (max-width: 850px) {
+  .shell { width: min(100% - 32px, 700px); }
+  main.shell { margin-top: -19px; }
+  .workspace { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .hero { padding-bottom: 42px; }
+  .hero p { margin-bottom: 5px; }
+}
+@media (max-width: 480px) {
+  .shell { width: calc(100% - 28px); }
+  main.shell { margin-top: -13px; }
+  .hero { padding-bottom: 33px; }
+}
