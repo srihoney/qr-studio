@@ -12,9 +12,10 @@ function metadata(mode,payload,bytes){
   $('qrExpiry').textContent='No built-in expiry';$('dataBytes').textContent=U.byteSize(bytes);
   if(mode==='url'||mode==='file'){
     const provider=U.providerOf(payload),expiration=U.expiryOfUrl(payload);
-    $('destinationProvider').textContent=mode==='url'?provider:(provider==='Other website'?'Other file host':provider);
-    $('linkExpiry').textContent=(mode==='file' && state.uploadMeta && payload===state.uploadMeta.url)?new Date(state.uploadMeta.expiresAt).toLocaleString():expiration.status==='possible'?'Possibly expiring':'Not verified';
-    $('expiryExplanation').textContent=(mode==='file' && state.uploadMeta && payload===state.uploadMeta.url)?'QR Studio-hosted file. Its link stops serving the file after 30 days, and cleanup removes the stored file.':expiration.detail+(mode==='file'?' File access also depends on sharing permissions and continued storage.':'');
+    const owned=(mode==='file' && state.uploadMeta && payload===state.uploadMeta.url);
+    $('destinationProvider').textContent=owned?'QR Studio file':mode==='url'?provider:(provider==='Other website'?'Other file host':provider);
+    $('linkExpiry').textContent=owned?new Date(state.uploadMeta.expiresAt).toLocaleString():expiration.status==='possible'?'Possibly expiring':'Not verified';
+    $('expiryExplanation').textContent=owned?'QR Studio-hosted file; access follows the selected viewing mode until its expiration.':expiration.detail+(mode==='file'?' File access also depends on sharing permissions and continued storage.':'');
   }else{
     const descriptions={text:['Embedded text','Not applicable','Text is stored in the QR itself. It has no online destination.'],wifi:['Wi-Fi network','Not applicable','The QR does not expire, but changing the password or network name can make it unusable.'],contact:['Contact card','Not applicable','The embedded contact details are static and can become outdated.'],email:['Email app','Not applicable','An email account or mail app is needed to use the QR.'],phone:['Phone app','Not applicable','The phone number must remain active.'],sms:['Messaging app','Not applicable','The mobile number and messaging support must remain available.']};
     const d=descriptions[mode];$('destinationProvider').textContent=d[0];$('linkExpiry').textContent=d[1];$('expiryExplanation').textContent=d[2];
@@ -117,7 +118,7 @@ function parseCsv(content){
 }
 function showFileSource(){
   const upload=document.querySelector('input[name="fileSource"]:checked').value==='upload';
-  $('uploadFormSection').hidden=!upload;$('cloudLinkSection').hidden=upload;state.uploadMeta=null;$('fileValue').value='';$('uploadResult').hidden=true;refresh();
+  $('uploadFormSection').hidden=!upload;$('cloudLinkSection').hidden=upload;state.uploadMeta=null;$('fileValue').value='';$('uploadResult').hidden=true;$('fileActions').hidden=true;refresh();
 }
 async function setupServices(){
   try{const response=await fetch('/api/config',{cache:'no-store'});if(!response.ok)throw Error('Service not configured');
@@ -145,14 +146,37 @@ async function uploadHostedFile(){
   if(file.size===0||file.size>5*1024*1024){$('uploadStatus').textContent='Choose a file between 1 byte and 5 MB.';return;}
   if(!challengeToken('upload')){$('uploadStatus').textContent='Please complete the security check first.';return;}
   button.disabled=true;$('uploadStatus').textContent='Uploading file securely…';
-  try{const body=new FormData();body.append('file',file);body.append('turnstileToken',challengeToken('upload'));
+  try{const body=new FormData();body.append('file',file);body.append('accessMode',document.querySelector('input[name="accessMode"]:checked').value);body.append('turnstileToken',challengeToken('upload'));
     const response=await fetch('/api/upload',{method:'POST',body});const result=await response.json();
     if(!response.ok)throw Error(result.error||'Upload failed.');
     state.uploadMeta=result;$('fileValue').value=result.url;$('uploadResult').hidden=false;
-    $('uploadResult').textContent=`Uploaded: ${file.name}. Accessible until ${new Date(result.expiresAt).toLocaleString()}. Anyone with the QR can download the file.`;
-    $('uploadStatus').textContent='Upload completed. Your QR is ready below.';refresh();
+    $('uploadResult').textContent=`Uploaded: ${result.name}. Expires ${new Date(result.expiresAt).toLocaleString()}. Sharing: ${result.accessMode==='view'?'View Online':'View & Download'}.`;
+    $('fileActions').hidden=false;$('openFile').href=result.url;
+    $('deleteFileStatus').textContent='Save your private deletion receipt if you want to remove this file early.';
+    $('uploadStatus').textContent='Upload complete. Download your QR when ready.';refresh();
   }catch(error){$('uploadStatus').textContent=error.message;}
   finally{button.disabled=false;resetChallenge('upload');}
+}
+function setFilePreference(){
+  const file=$('hostedFile').files?.[0],view=document.querySelector('input[name="accessMode"][value="view"]');
+  const previewable=!!file && /\.(pdf|png|jpe?g|webp)$/i.test(file.name);
+  view.disabled=!!file&&!previewable;
+  if(view.disabled&&view.checked)document.querySelector('input[name="accessMode"][value="download"]').checked=true;
+  $('accessHint').textContent=view.disabled?'This file type supports View & Download only.':'View Online is for PDF and images; it cannot prevent copying or screenshots.';
+}
+function deleteReceipt(){
+  const r=state.uploadMeta;if(!r?.deleteToken)return null;
+  return `QR Studio private deletion receipt\nFile: ${r.name}\nFile ID: ${r.id}\nDeletion token: ${r.deleteToken}\nExpires: ${r.expiresAt}\nFile link: ${r.url}\n\nKeep this token private. Anyone holding it can delete the upload. Never put it inside a QR code.`;
+}
+async function deleteFile(id,token,target){
+  if(!id||!token){$(target).textContent='A file ID and private deletion token are required.';return;}
+  if(!confirm('Permanently delete this uploaded file now? This will make its QR link stop working.'))return;
+  $(target).textContent='Deleting…';
+  try{const r=await fetch('/api/file/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,deleteToken:token})});
+    const data=await r.json();if(!r.ok)throw Error(data.error||'Unable to delete file.');
+    $(target).textContent='File deleted. The QR link no longer works.';
+    if(state.uploadMeta?.id===id){state.uploadMeta=null;$('fileValue').value='';$('fileActions').hidden=true;$('uploadResult').hidden=true;refresh();}
+  }catch(e){$(target).textContent=e.message;}
 }
 async function sendContact(event){event.preventDefault();const btn=$('contactSubmit');
   if(!challengeToken('contact')){$('contactStatus').textContent='Please complete the security check first.';return;}
@@ -206,7 +230,13 @@ $('batchCsv').addEventListener('change',async event=>{const file=event.target.fi
   catch(e){state.batchCsvRows=null;$('batchStatus').textContent=e.message;}
 });
 document.querySelectorAll('input[name="fileSource"]').forEach(el=>el.addEventListener('change',showFileSource));
-$('uploadButton').addEventListener('click',uploadHostedFile);$('hostedFile').addEventListener('change',()=>{state.uploadMeta=null;$('fileValue').value='';refresh();});
+$('uploadButton').addEventListener('click',uploadHostedFile);
+$('hostedFile').addEventListener('change',()=>{state.uploadMeta=null;$('fileValue').value='';$('fileActions').hidden=true;setFilePreference();refresh();});
+$('copyFileLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(state.uploadMeta.url);$('deleteFileStatus').textContent='File link copied.';}catch{$('deleteFileStatus').textContent='Copy unavailable; open your file and copy its URL.';}});
+$('saveDeleteReceipt').addEventListener('click',()=>{const r=deleteReceipt();if(r){X.saveBlob(new Blob([r],{type:'text/plain;charset=utf-8'}),'QRStudio_Private_Deletion_Receipt.txt');$('deleteFileStatus').textContent='Receipt downloaded. Keep it private.';}});
+$('deleteCurrentFile').addEventListener('click',()=>deleteFile(state.uploadMeta?.id,state.uploadMeta?.deleteToken,'deleteFileStatus'));
+$('deleteWithReceipt').addEventListener('click',()=>deleteFile($('deleteId').value.trim(),$('deleteToken').value.trim(),'deleteReceiptStatus'));
+
 $('contactForm').addEventListener('submit',sendContact);
 
 $('scanImageBtn').addEventListener('click',async()=>{

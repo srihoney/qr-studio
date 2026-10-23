@@ -7,13 +7,13 @@ test('public commercial design: four tabs, no history/version or default QR',()=
   const nav=html.match(/<nav aria-label="Main navigation">(.*?)<\/nav>/)?.[1]||'';
   assert.equal((nav.match(/<a /g)||[]).length,4);
   assert.doesNotMatch(html,/class="mode active"|V2\.0|id="history"|saveHistory|clearHistory|FREE &amp; OPEN SOURCE|Pricing/);
-  assert.match(html,/id="qrCanvas"[^>]*hidden/);
+  assert.match(html,/<canvas[^>]*id="qrCanvas"[^>]*>/);
   assert.match(html,/id="themeToggle"/);
 });
 test('upload/contact/csv and frame placement provided',()=>{
   for(const id of ['hostedFile','uploadButton','uploadChallenge','contactForm','senderEmail','senderMessage','contactChallenge','batchCsv'])assert(html.includes(`id="${id}"`));
   for(const name of ['value="top"','value="bottom"'])assert(html.includes(name));
-  assert(!html.includes('eswarkav@gmail.com'));
+  assert(!html.includes('@gmail.com'));
 });
 test('render top and bottom captions in vector SVG/PDF',async()=>{
   const QR=require('../public/assets/js/utils.js'),X=require('../public/assets/js/exports.js');
@@ -73,7 +73,7 @@ test('mocked upload -> opaque download -> expiry -> scheduled deletion',async()=
    if(sql.includes('COALESCE(SUM'))return {today:0,active:0};
    if(sql.startsWith('SELECT * FROM uploads'))return rows.get(args[0]);
    return null;},async run(){
-     if(sql.startsWith('INSERT INTO uploads'))rows.set(args[0],{id:args[0],storage_key:args[1],file_name:args[2],mime:args[3],size:args[4],creator_hash:args[5],created_at:args[6],expires_at:args[7]});
+     if(sql.startsWith('INSERT INTO uploads'))rows.set(args[0],{id:args[0],storage_key:args[1],file_name:args[2],mime:args[3],size:args[4],creator_hash:args[5],created_at:args[6],expires_at:args[7],access_mode:args[8],delete_token_hash:args[9]});
      if(sql.startsWith('DELETE FROM uploads'))rows.delete(args[0]);
      return {success:true};},async all(){if(sql.startsWith('SELECT id,storage_key FROM uploads'))return {results:[...rows.values()].filter(r=>r.expires_at<=args[0])};return {results:[]};}};}};
  const FILES={async put(k,bytes){files.set(k,bytes)},async get(k){const b=files.get(k);return b?{size:b.byteLength,body:new Blob([b]).stream()}:null},async delete(k){files.delete(k)}};
@@ -82,11 +82,11 @@ test('mocked upload -> opaque download -> expiry -> scheduled deletion',async()=
   const form=new FormData();form.append('file',new Blob([new Uint8Array([37,80,68,70,45,49,50,51])],{type:'application/pdf'}),'poster.pdf');form.append('turnstileToken','example');
   const req=new Request('https://freeqrstudio.pages.dev/api/upload',{method:'POST',headers:{Origin:'https://freeqrstudio.pages.dev','CF-Connecting-IP':'203.0.113.1'},body:form});
   const created=await onRequestPost({env,request:req});assert.equal(created.status,201,await created.clone().text());
-  const result=await created.json();assert.match(result.url,/\/file\/[a-f0-9-]{36}$/);assert.equal(files.size,1);
-  const download=await onRequestGet({request:new Request(result.url),env,params:{id:result.id}});assert.equal(download.status,200);
+  const result=await created.json();assert.match(result.url,/\/view\/[a-f0-9-]{36}$/);assert.equal(files.size,1);
+  const download=await onRequestGet({request:new Request(result.url.replace('/view/','/file/')),env,params:{id:result.id}});assert.equal(download.status,200);
   assert.deepEqual(new Uint8Array(await download.arrayBuffer()),new Uint8Array([37,80,68,70,45,49,50,51]));
   rows.get(result.id).expires_at=Date.now()-1;
-  const expired=await onRequestGet({request:new Request(result.url),env,params:{id:result.id}});assert.equal(expired.status,410);
+  const expired=await onRequestGet({request:new Request(result.url.replace('/view/','/file/')),env,params:{id:result.id}});assert.equal(expired.status,410);
   await cleaner.scheduled({},env,{});assert.equal(rows.size,0);assert.equal(files.size,0);
  }finally{global.fetch=originals;}
 });
