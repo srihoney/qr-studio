@@ -247,3 +247,61 @@ html[data-theme=light] .neon-lower h2,html[data-theme=light] .neon-lower #guide:
 html[data-theme=light] .guide-card summary{color:#2b5077!important}
 html[data-theme=light] .guide-card{border-bottom-color:#b2c5df!important}
 html[data-theme=light] .inspector-fold,html[data-theme=light] .inspector-fold summary{color:#1a69a8!important}
+
+/* NEON HORIZON — HERO BOUNDARY AND RIGHT-SIDE ARTWORK CLEANUP
+   Keep the hero in normal document flow. Its content determines its height,
+   so the following workspace can never cover the subtitle. */
+.top-wrap .hero.shell {
+  box-sizing: border-box;
+  height: auto !important;
+  min-height: 216px !important;
+  padding-top: 29px !important;
+  padding-bottom: 37px !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: center !important;
+}
+.top-wrap .hero .hero-content {
+  min-width: 0;
+  max-width: min(730px, 70%);
+  padding-left: 2.2%;
+  padding-right: 14px;
+}
+.top-wrap .hero .hero-content p {
+  display: block;
+  position: relative;
+  margin: 12px 0 0 !important;
+  line-height: 1.5 !important;
+}
+/* The "small codes / bigger connections" slogan is baked into the far-right
+   portion of the decorative image. Fade the image to transparent before that
+   area; preserve the portal and road in the rest of the hero. */
+.top-wrap .hero-landscape::before {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 27%, #000 69%, transparent 80%) !important;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 27%, #000 69%, transparent 80%) !important;
+}
+/* Normal flow, with a flush and continuous hero-to-workspace transition. */
+main.shell > .workspace {
+  margin-top: 0 !important;
+  top: auto !important;
+  transform: none !important;
+}
+@media (max-width: 700px) {
+  .top-wrap .hero.shell {
+    min-height: 196px !important;
+    padding-top: 25px !important;
+    padding-bottom: 31px !important;
+  }
+  .top-wrap .hero .hero-content {
+    max-width: 100%;
+    padding-left: 0;
+    padding-right: 10px;
+  }
+}
+@media (max-width: 400px) {
+  .top-wrap .hero.shell {
+    min-height: 202px !important;
+    padding-top: 25px !important;
+    padding-bottom: 30px !important;
+  }
+}
