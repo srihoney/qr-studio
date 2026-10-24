@@ -305,3 +305,31 @@ main.shell > .workspace {
     padding-bottom: 30px !important;
   }
 }
+
+
+/* NEON HORIZON — DESKTOP FULL-BLEED WORKSPACE CORRECTION
+   The previous shell max-width and inherited 30px horizontal padding
+   kept the workspace inside a floating strip. Only the main wrapper is
+   made edge-to-edge; the centered header, hero copy, and mobile layout
+   remain unchanged. No negative margins or transforms are required. */
+@media (min-width: 701px) {
+  body > main.shell {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  body > main.shell > .workspace {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+  }
+}
