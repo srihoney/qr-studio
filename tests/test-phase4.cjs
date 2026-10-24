@@ -46,6 +46,15 @@ test('D1 migration exists and backend never publishes contact recipient',()=>{
  assert.match(schema,/ALTER TABLE uploads ADD COLUMN access_mode/);
  assert.match(schema,/ALTER TABLE uploads ADD COLUMN delete_token_hash/);
  const html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
- assert.match(html,/approved-brand-image/);assert.match(html,/name="accessMode"/);
+ assert.match(html,/neon-brandmark/);assert.match(html,/name="accessMode"/);
  assert.match(html,/id="deleteWithReceipt"/);assert.doesNotMatch(html,/@gmail\.com/);
+});
+
+test('Neon Horizon release keeps feature hooks, theme and separate application CSS',()=>{
+ const html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
+ assert.match(html,/neon-brandmark/);assert.match(html,/neon-horizon\.css/);
+ assert.match(html,/id="sizeDial"/);
+ assert.match(html,/data-design-tab/);
+ for(const id of ['uploadChallenge','contactChallenge','qrCanvas','batchCsv','deleteWithReceipt','scanImage'])assert(html.includes('id="'+id+'"'));
+ assert.doesNotMatch(html,/<script\s*>/);
 });

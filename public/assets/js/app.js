@@ -213,10 +213,10 @@ function setTheme(theme){document.documentElement.dataset.theme=theme;themeButto
   document.querySelector('meta[name="theme-color"]').content=theme==='dark'?'#071725':'#f4f8fb';
   try{localStorage.setItem('qrstudio_theme',theme);}catch{}
 }
-let initialTheme='light';try{initialTheme=localStorage.getItem('qrstudio_theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}catch{}
+let initialTheme='dark';try{initialTheme=localStorage.getItem('qrstudio_theme')||'dark';}catch{}
 setTheme(initialTheme==='dark'?'dark':'light');
 themeButton.addEventListener('click',()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
-$('resetDesign').addEventListener('click',()=>{$('fg').value='#12263c';$('bg').value='#ffffff';$('eye').value='#12263c';$('fg2').value='#145f71';$('gradient').checked=false;$('fg2Group').hidden=true;$('frame').value='none';$('caption').value='SCAN ME';$('captionGroup').hidden=true;document.querySelector('input[name="pattern"][value="square"]').checked=true;document.querySelector('input[name="finder"][value="square"]').checked=true;document.querySelectorAll('[data-preset]').forEach(b=>b.classList.toggle('active',b.dataset.preset==='navy'));$('ecc').value='H';$('resolution').value='2048';state.logo=null;state.logoData=null;$('logoFile').value='';$('clearLogo').hidden=true;refresh();});
+$('resetDesign').addEventListener('click',()=>{$('fg').value='#154fa0';$('bg').value='#ffffff';$('eye').value='#163e8e';$('fg2').value='#6541b2';$('gradient').checked=false;$('fg2Group').hidden=true;$('frame').value='none';$('caption').value='SCAN ME';$('captionGroup').hidden=true;document.querySelector('input[name="pattern"][value="square"]').checked=true;document.querySelector('input[name="finder"][value="square"]').checked=true;document.querySelectorAll('[data-preset]').forEach(b=>b.classList.toggle('active',b.dataset.preset==='navy'));$('ecc').value='H';$('resolution').value='2048';state.logo=null;state.logoData=null;$('logoFile').value='';$('clearLogo').hidden=true;refresh();});
 
 $('logoFile').addEventListener('change',async e=>{try{const data=await loadLogo(e.target.files[0]);state.logo=data?.img||null;state.logoData=data?.data||null;if(state.logo)$('ecc').value='H';$('clearLogo').hidden=!state.logo;refresh();}catch(err){e.target.value='';state.logo=null;state.logoData=null;$('clearLogo').hidden=true;refresh();tell(err.message,true);}});
 $('clearLogo').addEventListener('click',()=>{state.logo=null;state.logoData=null;$('logoFile').value='';$('clearLogo').hidden=true;refresh();});
@@ -259,5 +259,25 @@ $('scanImageBtn').addEventListener('click',async()=>{
 
 refresh();
 setupServices();
+
+// Neon Horizon interface-only controls. Core generation and Cloudflare integrations remain unchanged.
+{
+ const designTabs=[...document.querySelectorAll('[data-design-tab]')];
+ designTabs.forEach(tab=>tab.addEventListener('click',()=>{
+  const selected=tab.dataset.designTab;
+  designTabs.forEach(button=>{button.classList.toggle('active',button===tab);button.setAttribute('aria-selected',String(button===tab));});
+  document.querySelectorAll('.design-pane').forEach(pane=>{pane.hidden=pane.dataset.pane!==selected;});
+ }));
+ const dial=$('sizeDial'), res=$('resolution'), sizeText=$('sizeText');
+ if(dial && res && sizeText){
+  const sizes=['1024','2048','3072'];
+  const syncDial=()=>{dial.value=String(Math.max(0,sizes.indexOf(res.value)));sizeText.textContent=res.value+' px';};
+  dial.addEventListener('input',()=>{res.value=sizes[Number(dial.value)]||'2048';sizeText.textContent=res.value+' px';res.dispatchEvent(new Event('input',{bubbles:true}));});
+  res.addEventListener('input',syncDial);syncDial();
+ }
+ const heading=$('dynamicHeading');
+ const titles={url:'Website',file:'Share a file',text:'Text',wifi:'Wi-Fi network',contact:'Contact card',email:'Email address',phone:'Phone number',sms:'SMS message'};
+ if(heading)document.querySelectorAll('[data-mode-select]').forEach(tab=>tab.addEventListener('click',()=>{heading.textContent=titles[tab.dataset.modeSelect]||'Create QR';}));
+}
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/sw.js').catch(()=>{});
 })();

@@ -1,1 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#071a2b"/><g fill="#53e0b7"><path fill-rule="evenodd" d="M11 11h18v18H11zm5 5v8h8v-8zm19-5h18v18H35zm5 5v8h8v-8zM11 35h18v18H11zm5 5v8h8v-8z"/><path d="M35 35h7v7h-7zm11 0h7v7h-7zm-11 11h7v7h-7zm11 4h7v3h-7z"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="QR Studio">
+ <defs><linearGradient id="n" x2="1" y2="1"><stop stop-color="#42f6eb"/><stop offset=".52" stop-color="#589cff"/><stop offset="1" stop-color="#a56dff"/></linearGradient></defs>
+ <rect width="64" height="64" rx="14" fill="#081326"/>
+ <path d="M8 8h20v20H8zm5 5v10h10V13zM36 8h20v20H36zm5 5v10h10V13zM8 36h20v20H8zm5 5v10h10V41zM36 36h8v8h-8zm12 0h8v8h-8zM36 48h8v8h-8zm12 0h8v8h-8z" fill="url(#n)" fill-rule="evenodd"/>
+</svg>
