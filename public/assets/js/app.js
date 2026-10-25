@@ -59,12 +59,52 @@ function fname(ext){return `QRStudio_${state.mode}.${ext}`;}
 async function downloadPng(){if(!state.matrix)return;try{const c=X.drawOnCanvas(state.matrix,settings(),Number($('resolution').value));X.saveBlob(await X.canvasBlob(c),fname('png'));tell('PNG exported successfully.');}catch(e){tell(e.message,true);}}
 function downloadSvg(){if(!state.matrix)return;const markup=X.svgMarkup(state.matrix,settings());X.saveBlob(new Blob([markup],{type:'image/svg+xml;charset=utf-8'}),fname('svg'));tell('Vector SVG exported successfully.');}
 function downloadPdf(){if(!state.matrix)return;try{const data=X.pdfBytes(state.matrix,settings(),$('pdfTitle').value||'Scan to open');X.saveBlob(new Blob([data],{type:'application/pdf'}),fname('pdf'));tell('Print-ready PDF exported successfully.');}catch(e){tell('Could not export PDF: '+e.message,true);}}
-async function verify(){if(!state.matrix)return;
-  if(!('BarcodeDetector' in window)){tell('Automatic QR decoding is unavailable in this browser. Scan the preview or printed code with a phone and check the destination.',true);return;}
-  try{const detector=new BarcodeDetector({formats:['qr_code']});const found=await detector.detect($('qrCanvas'));
-    if(found.some(f=>f.rawValue===state.payload))tell('Verified: your browser decoded the QR and matched its content. Test printing and destination access separately.');
-    else tell('Automatic scan could not confirm the full content. Try another color or remove the logo; test on your phone.',true);
-  }catch(e){tell('Automatic scanner could not run. Please test using your phone camera. '+e.message,true);}
+// QR decoding is local: native BarcodeDetector when available, jsQR fallback elsewhere.
+// Never send uploaded or generated QR pixels to an external service.
+async function decodeQrImage(source){
+  let bitmap=null;
+  try{
+    if(source instanceof File || source instanceof Blob){
+      bitmap=await createImageBitmap(source);
+    }
+    const image=bitmap||source;
+    if(typeof window.BarcodeDetector==='function'){
+      try{
+        const detector=new window.BarcodeDetector({formats:['qr_code']});
+        const detected=await detector.detect(image);
+        if(detected.length && detected[0].rawValue!=null)return String(detected[0].rawValue);
+      }catch(_nativeError){/* Use the local fallback when native detection is unavailable. */}
+    }
+    if(typeof window.jsQR!=='function')throw Error('The QR reader did not load. Check your internet connection or browser content blocker, then reload.');
+    // Bound large images so decoding does not exhaust the browser's memory.
+    const iw=image.naturalWidth||image.width,ih=image.naturalHeight||image.height;
+    if(!iw||!ih)throw Error('This image has no readable dimensions.');
+    const scale=Math.min(1,2048/Math.max(iw,ih));
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(iw*scale));
+    canvas.height=Math.max(1,Math.round(ih*scale));
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});
+    if(!ctx)throw Error('Unable to create an image decoder.');
+    ctx.drawImage(image,0,0,canvas.width,canvas.height);
+    const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
+    const found=window.jsQR(pixels.data,pixels.width,pixels.height,{inversionAttempts:'attemptBoth'});
+    return found&&typeof found.data==='string'?found.data:null;
+  }finally{bitmap?.close?.();}
+}
+async function verify(){
+  if(!state.matrix)return;
+  const button=$('verify');button.disabled=true;
+  try{
+    const found=await decodeQrImage($('qrCanvas'));
+    if(found===state.payload){
+      tell('Verified: QR image decoded successfully and its content matches. Check physical prints and destination access separately.');
+    }else if(found===null){
+      tell('No readable QR pattern was detected. Try higher contrast, a smaller logo, or a simpler style.',true);
+    }else{
+      tell('The QR image decoded, but the decoded content differs from the intended destination. Do not distribute this code.',true);
+    }
+  }catch(error){tell('Could not complete the QR check: '+error.message,true);}
+  finally{button.disabled=!state.matrix;}
 }
 function loadLogo(file){return new Promise((resolve,reject)=>{
   if(!file){resolve(null);return;}
@@ -254,21 +294,22 @@ $('deleteWithReceipt').addEventListener('click',()=>deleteFile($('deleteId').val
 $('contactForm').addEventListener('submit',sendContact);
 
 $('scanImageBtn').addEventListener('click',async()=>{
-  const f=$('scanImage').files?.[0],result=$('scanResult');result.replaceChildren();
+  const f=$('scanImage').files?.[0],result=$('scanResult'),button=$('scanImageBtn');
+  result.replaceChildren();
   if(!f){result.textContent='Select an image containing a QR code first.';return;}
   if(!['image/png','image/jpeg','image/webp'].includes(f.type)||f.size>10*1024*1024){result.textContent='Choose a PNG, JPG or WebP image smaller than 10 MB.';return;}
-  if(!('BarcodeDetector' in window)){result.textContent='Your browser does not support built-in QR decoding. Use your phone camera or another QR reader to inspect this image.';return;}
+  button.disabled=true;result.textContent='Reading QR image…';
   try{
-    const image=await createImageBitmap(f);let items=[];
-    try{const detector=new BarcodeDetector({formats:['qr_code']});items=await detector.detect(image);}
-    finally{image.close?.();}
-    if(!items.length){result.textContent='No readable QR code was detected. Try a sharper, high-contrast image.';return;}
-    const payload=items[0].rawValue||'';
+    const payload=await decodeQrImage(f);
+    result.replaceChildren();
+    if(payload===null){result.textContent='No readable QR code was detected. Try a sharper, higher-contrast image.';return;}
     const lead=document.createElement('strong');lead.textContent='Decoded content: ';
     const output=document.createElement('span');output.textContent=payload;
     result.append(lead,output);
-    const target=U.validWebUrl(payload);if(target){const link=document.createElement('a');link.href=target.href;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open decoded website ↗';result.append(link);}
+    const target=U.validWebUrl(payload);
+    if(target){const link=document.createElement('a');link.href=target.href;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open decoded website ↗';result.append(link);}
   }catch(error){result.textContent='Unable to decode this image: '+error.message;}
+  finally{button.disabled=false;}
 });
 
 refresh();

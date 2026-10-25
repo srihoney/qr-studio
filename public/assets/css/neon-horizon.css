@@ -451,3 +451,26 @@ html[data-theme=light] .mode-more:hover {background:#d6e6fc}
 #csvSample,#scanResult,.inspector-fold label,.footer-links a {font-size:14px!important;line-height:1.5!important}
 @media(max-width:700px){.site-header nav a{font-size:14px!important}}
 @media(max-width:390px){.site-header nav a{font-size:14px!important}}
+
+/* Neon Horizon — energetic road-light animation, without altering the approved image or layout. */
+.hero-landscape .hero-motion{
+  position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;
+  opacity:.84;mix-blend-mode:screen;overflow:visible;
+}
+.hero-motion path{fill:none;stroke:url(#heroMotionSpectrum);stroke-linecap:round;vector-effect:non-scaling-stroke}
+.hero-motion-glow{stroke-width:8;opacity:.35;filter:url(#heroMotionBloom)}
+.hero-motion-road{stroke-width:2.8;stroke-dasharray:120 200 40 340;
+  animation:heroEnergyTravel 3.1s linear infinite;
+  filter:drop-shadow(0 0 7px #5cbcff)}
+.hero-motion-road.secondary{stroke-width:1.5;opacity:.6;stroke-dasharray:55 135 12 275;
+  animation-duration:2.25s;animation-direction:reverse}
+.hero-signal{position:absolute;z-index:4;display:block;width:7px;height:7px;
+  border-radius:50%;background:#b8fff9;box-shadow:0 0 8px #7cecff,0 0 20px #499aff;
+  animation:heroSignal 2.8s ease-in-out infinite;pointer-events:none}
+.hero-signal-one{top:29%;left:51%;animation-delay:-.45s}
+.hero-signal-two{top:65%;left:78%;width:5px;height:5px;animation-delay:-1.35s}
+.hero-signal-three{top:45%;left:93%;width:4px;height:4px;animation-delay:-2.1s}
+@keyframes heroEnergyTravel{from{stroke-dashoffset:0}to{stroke-dashoffset:-700}}
+@keyframes heroSignal{0%,100%{opacity:.15;transform:scale(.5)}30%,58%{opacity:.9;transform:scale(1.45)}72%{opacity:.3;transform:scale(.75)}}
+@media(max-width:700px){.hero-landscape .hero-motion{opacity:.48}.hero-signal{opacity:.45}}
+@media(prefers-reduced-motion:reduce){.hero-motion-road,.hero-signal{animation:none!important}.hero-motion-road{stroke-dasharray:none;opacity:.24}.hero-signal{opacity:.3!important}}
