@@ -333,3 +333,121 @@ main.shell > .workspace {
     transform: none !important;
   }
 }
+
+/* QR STUDIO READABILITY PASS — October 2026
+   Consolidated, legible typography without changing the approved artwork,
+   edge-to-edge desktop layout, color palette or working form/preview hooks. */
+body {font-size:16px;line-height:1.55}
+.site-header nav a {font-size:15px!important;line-height:1.4}
+.hero-kicker {font-size:12px;letter-spacing:4px}
+.top-wrap .hero .hero-content p {font-size:16px!important;line-height:1.5!important}
+.mode-column {padding-right:12px}
+.rail-title {font-size:12px;line-height:1.5;letter-spacing:2px}
+.mode-tabs .mode {height:auto!important;min-height:46px!important;font-size:16px!important;line-height:1.35!important;font-weight:640!important;gap:13px!important}
+.mode-tabs .mode .mode-icon {width:21px;height:21px;flex:0 0 21px}
+.dynamic-heading {font-size:23px;line-height:1.3}
+#selectPrompt {font-size:15px;line-height:1.55}
+.form-region label,.design-section label,.batch-widget label,.contact-form label {font-size:15px;line-height:1.45}
+.form-region .mode-panel input:not([type=radio]):not([type=file]),
+.form-region .mode-panel textarea,.form-region .mode-panel select,
+.design-section select,.design-section input:not([type=radio]):not([type=color]):not([type=file]):not([type=checkbox]):not([type=range]),
+.batch-widget textarea,.contact-form input,.contact-form textarea {font-size:16px!important;line-height:1.45;min-height:45px!important}
+.form-region input::placeholder,.contact-form input::placeholder,.contact-form textarea::placeholder {color:#a6b9d6!important;opacity:1}
+html[data-theme=light] .form-region input::placeholder,html[data-theme=light] .contact-form input::placeholder,html[data-theme=light] .contact-form textarea::placeholder{color:#567294!important}
+.field-hint,.hint,.form-status,#uploadStatus,#deleteFileStatus,#deleteReceiptStatus {font-size:14px!important;line-height:1.5!important}
+.file-choice label,.access-choice label {font-size:15px!important;line-height:1.45!important;min-height:46px}
+.file-choice small,.access-choice small,.provider-help,.provider-help span,.help-details summary,.early-delete summary,.uploaded-detail {font-size:14px;line-height:1.5}
+.upload-box input[type=file] {font-size:14px}
+.custom-title {font-size:19px;line-height:1.4}
+.custom-title span {font-size:14px}
+.styling-tabs button {font-size:15px;line-height:1.4;min-height:43px}
+.shape-picker legend {font-size:14px;line-height:1.45;margin-bottom:8px}
+.shape-picker .design-option {font-size:14px!important;line-height:1.4;min-height:78px;min-width:76px}
+.size-strip,.size-strip output,.color-choose code {font-size:14px;line-height:1.45}
+.size-strip label {font-size:14px}
+.color-choose {min-height:42px}
+.logo-field small {font-size:14px}
+.status-badge {font-size:14px!important;line-height:1.45}
+.preview-subnote,.feedback {font-size:14px!important;line-height:1.5!important}
+.qr-blank {max-width:215px!important}
+.qr-blank strong {font-size:16px}
+.qr-blank span {font-size:14px;line-height:1.5}
+.report-details,.report-details summary,.preview-info,.preview-info .info-line {font-size:14px;line-height:1.5}
+.benefit strong {font-size:15px;line-height:1.45}
+.benefit small {font-size:14px;line-height:1.5}
+.btn,.primary-action,.secondary-action,.outline-action {font-size:15px!important;line-height:1.4!important;min-height:45px!important}
+#verify {font-size:14px!important;min-height:36px!important}
+.neon-lower .section-kicker,.neon-lower .overline {font-size:12px;line-height:1.5}
+.neon-lower h2 {font-size:22px!important;line-height:1.3!important}
+.neon-lower h3 {font-size:17px!important;line-height:1.35!important}
+.neon-lower p {font-size:14px!important;line-height:1.55!important}
+#batch textarea {font-size:15px!important;min-height:105px!important}
+#batch .csv-upload input,#batch .csv-upload label,#batch .batch-actions span {font-size:14px}
+#batch .batch-actions button,.contact-actions button {min-height:45px!important}
+.inspector-fold summary,.inspector-fold input {font-size:14px}
+#guide:before,.contact-section:before {font-size:22px;line-height:1.3}
+.guide-card summary {font-size:15px;line-height:1.5;padding:13px 5px;min-height:43px}
+.guide-card p {font-size:14px!important}
+.contact-form input {height:auto!important;min-height:45px!important;font-size:16px!important;padding:11px!important}
+.contact-form textarea {height:auto;min-height:105px!important;font-size:16px!important;padding:11px!important}
+.contact-form label,.contact-actions span {font-size:14px!important}
+.footer-brand {font-size:19px}
+.footer-inner p,.footer-links,.preview-disclaimer {font-size:14px!important;line-height:1.5}
+
+/* Additional QR types remain hidden until the visitor requests them. */
+.mode-more {display:flex;align-items:center;gap:10px;width:100%;min-height:46px;margin:9px 0 2px;padding:9px 13px;border:1px solid #405b82;border-radius:7px;background:#122641;color:#deecff;font-weight:650;font-size:15px;text-align:left;cursor:pointer;transition:background .2s,border-color .2s}
+.mode-more:hover,.mode-more[aria-expanded=true]{border-color:#6287e6;background:#1a3560}
+.more-symbol{color:#87bbff;font-size:21px;line-height:1}
+.more-chevron{margin-left:auto;color:#b1c7f4;font-size:19px;line-height:1}
+.mode-more:focus-visible,.mode-tabs .mode:focus-visible {outline:3px solid #80d9ff;outline-offset:2px}
+.mode-additional {padding:4px 0 0;border-top:1px solid #31476b;margin-top:7px}
+html[data-theme=light] .mode-more {background:#e4efff;color:#173d75;border-color:#a8c4e8}
+html[data-theme=light] .mode-more:hover {background:#d6e6fc}
+/* Within Location mode, the choice is visible alongside existing form controls. */
+.location-method {margin:0 0 12px;padding:0;border:0;display:flex;gap:17px;flex-wrap:wrap}
+.location-method legend {font-size:15px;font-weight:650;margin-bottom:8px}
+.location-method label {display:flex;align-items:center;gap:7px;cursor:pointer;min-height:36px}
+.location-method input[type=radio] {width:17px;height:17px;accent-color:#6588fc}
+.mode-panel input[type=datetime-local] {width:100%;min-width:0}
+.mode-panel textarea {width:100%;resize:vertical}
+@media (min-width:1251px) {.editor-panel{grid-template-columns:210px minmax(0,1fr)}.mode-column{padding-left:10px}}
+@media (min-width:701px) and (max-width:1250px) {.editor-panel{grid-template-columns:190px minmax(0,1fr)}.mode-column{padding-left:7px}}
+@media (min-width:701px) and (max-width:1050px){.preview-panel{grid-template-columns:minmax(0,1fr) 190px}}
+@media(max-width:700px){
+  .site-header nav a{font-size:14px!important;line-height:1.5}
+  .hero-kicker{font-size:11px}
+  .top-wrap .hero .hero-content p{font-size:14px!important}
+  .rail-title{font-size:12px}
+  .mode-tabs.mode-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px!important}
+  .mode-tabs .mode{min-height:55px!important;height:auto!important;flex-direction:column!important;gap:3px!important;font-size:13px!important;line-height:1.2!important;padding:8px 2px!important}
+  .mode-tabs .mode .mode-icon{width:20px;height:20px;flex:0 0 20px}
+  .mode-more{min-height:45px;font-size:14px;margin:10px 3px;width:calc(100% - 6px)}
+  .dynamic-heading{font-size:21px}
+  .custom-title{font-size:17px}
+  .styling-tabs button{font-size:14px!important;min-height:42px}
+  .shape-picker .design-option{font-size:13px!important;min-height:76px;min-width:0!important;flex:1 1 70px}
+  .form-region label,.design-section label{font-size:14px}
+  .preview-head .status-badge{font-size:14px!important}
+  .neon-lower>section{padding:20px 16px!important}
+  .guide-card summary{font-size:15px}
+  .footer-links{gap:12px!important}
+}
+@media(max-width:390px){
+  .site-header nav a {font-size:13px!important}
+  .mode-tabs .mode{font-size:12.5px!important}
+  .location-method{gap:8px}
+  .form-region .two-fields,.mode-panel .two-fields{grid-template-columns:1fr}
+}
+/* Keep the expansion affordance on one line at normal desktop sizes. */
+.mode-more{font-size:14px;gap:6px;white-space:nowrap;padding-left:10px;padding-right:10px}
+@media(max-width:700px){.mode-tabs .mode{font-size:14px!important}}
+@media(max-width:390px){.mode-tabs .mode{font-size:13.5px!important}}
+/* Older Signature selectors explicitly shrank text nested inside controls. */
+.mode-tabs .mode > span {font-size:inherit!important;line-height:inherit!important}
+.mode-panel label small,.form-region label small {font-size:14px!important;line-height:1.4}
+.size-strip label {font-size:14px!important}
+#qrPlaceholder,.qr-blank,.qr-blank span {font-size:14px!important;line-height:1.5!important}
+#expiryExplanation,.report-details p,.report-details strong,.preview-info p,.preview-info small {font-size:14px!important;line-height:1.5!important}
+#csvSample,#scanResult,.inspector-fold label,.footer-links a {font-size:14px!important;line-height:1.5!important}
+@media(max-width:700px){.site-header nav a{font-size:14px!important}}
+@media(max-width:390px){.site-header nav a{font-size:14px!important}}

@@ -5,19 +5,19 @@ const $=id=>document.getElementById(id);
 const U=window.QRStudioUtils, X=window.QRStudioExports;
 const state={mode:null,matrix:null,payload:'',logo:null,logoData:null,uploadMeta:null,config:null,turnstile:{upload:null,contact:null}};
 const outputBtns=[$('savePng'),$('saveSvg'),$('savePdf'),$('verify')];
-function readFields(){const panel=document.querySelector(`[data-mode-panel="${state.mode}"]`);const f={};panel.querySelectorAll('[data-field]').forEach(el=>f[el.dataset.field]=el.type==='checkbox'?el.checked:el.value);return f;}
+function readFields(){const panel=document.querySelector(`[data-mode-panel="${state.mode}"]`);const f={};panel.querySelectorAll('[data-field]').forEach(el=>f[el.dataset.field]=el.type==='checkbox'?el.checked:el.value);if(state.mode==='location')f.method=document.querySelector('input[name="locationMethod"]:checked').value;return f;}
 function settings(){return {fg:$('fg').value,bg:$('bg').value,eye:$('eye').value,fg2:$('fg2').value,gradient:$('gradient').checked,pattern:document.querySelector('input[name="pattern"]:checked').value,finder:document.querySelector('input[name="finder"]:checked').value,frame:$('frame').value,caption:$('caption').value,ecc:$('ecc').value,logo:state.logo,logoData:state.logoData};}
 function tell(s,isError=false){$('feedback').textContent=s;$('feedback').classList.toggle('error',isError);$('previewState').classList.toggle('bad',isError);$('previewState').textContent=isError?'Needs attention':'Ready to scan';}
 function metadata(mode,payload,bytes){
   $('qrExpiry').textContent='No built-in expiry';$('dataBytes').textContent=U.byteSize(bytes);
-  if(mode==='url'||mode==='file'){
+  if(mode==='url'||mode==='file'||mode==='whatsapp'||mode==='location'){
     const provider=U.providerOf(payload),expiration=U.expiryOfUrl(payload);
     const owned=(mode==='file' && state.uploadMeta && payload===state.uploadMeta.url);
-    $('destinationProvider').textContent=owned?'QR Studio file':mode==='url'?provider:(provider==='Other website'?'Other file host':provider);
+    $('destinationProvider').textContent=owned?'QR Studio file':mode==='whatsapp'?'WhatsApp':mode==='location'?'Google Maps':mode==='url'?provider:(provider==='Other website'?'Other file host':provider);
     $('linkExpiry').textContent=owned?new Date(state.uploadMeta.expiresAt).toLocaleString():expiration.status==='possible'?'Possibly expiring':'Not verified';
-    $('expiryExplanation').textContent=owned?'QR Studio-hosted file; access follows the selected viewing mode until its expiration.':expiration.detail+(mode==='file'?' File access also depends on sharing permissions and continued storage.':'');
+    $('expiryExplanation').textContent=owned?'QR Studio-hosted file; access follows the selected viewing mode until its expiration.':mode==='whatsapp'?'Opens WhatsApp for the specified phone number; WhatsApp availability is outside QR Studio.':mode==='location'?'Opens Google Maps; the mapping service requires internet access.':expiration.detail+(mode==='file'?' File access also depends on sharing permissions and continued storage.':'');
   }else{
-    const descriptions={text:['Embedded text','Not applicable','Text is stored in the QR itself. It has no online destination.'],wifi:['Wi-Fi network','Not applicable','The QR does not expire, but changing the password or network name can make it unusable.'],contact:['Contact card','Not applicable','The embedded contact details are static and can become outdated.'],email:['Email app','Not applicable','An email account or mail app is needed to use the QR.'],phone:['Phone app','Not applicable','The phone number must remain active.'],sms:['Messaging app','Not applicable','The mobile number and messaging support must remain available.']};
+    const descriptions={text:['Embedded text','Not applicable','Text is stored in the QR itself. It has no online destination.'],wifi:['Wi-Fi network','Not applicable','The QR does not expire, but changing the password or network name can make it unusable.'],contact:['Contact card','Not applicable','The embedded contact details are static and can become outdated.'],email:['Email app','Not applicable','An email account or mail app is needed to use the QR.'],phone:['Phone app','Not applicable','The phone number must remain active.'],sms:['Messaging app','Not applicable','The mobile number and messaging support must remain available.'],whatsapp:['WhatsApp chat','Not verified','Opens WhatsApp for the specified number; the account must remain available.'],location:['Google Maps','Not verified','Maps require internet access and the destination may change.'],event:['Calendar event','Not applicable','The event details are embedded in the QR. Calendar import support and time-zone interpretation depend on the scanning app.']};
     const d=descriptions[mode];$('destinationProvider').textContent=d[0];$('linkExpiry').textContent=d[1];$('expiryExplanation').textContent=d[2];
   }
 }
@@ -49,6 +49,7 @@ function refresh(){
 }
 function chooseMode(mode){
   state.mode=mode;
+  if(['whatsapp','location','event'].includes(mode))setMoreTypes(true);
   $('selectPrompt').hidden=true;
   document.querySelectorAll('[data-mode-select]').forEach(b=>{const active=b.dataset.modeSelect===mode;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;});
   document.querySelectorAll('[data-mode-panel]').forEach(el=>el.hidden=el.dataset.modePanel!==mode);
@@ -189,10 +190,23 @@ async function sendContact(event){event.preventDefault();const btn=$('contactSub
 }
 
 document.querySelectorAll('[data-mode-select]').forEach(btn=>btn.addEventListener('click',()=>chooseMode(btn.dataset.modeSelect)));
-document.querySelector('.mode-tabs').addEventListener('keydown',e=>{
+function setMoreTypes(open){
+  const more=$('moreQrTypes'),panel=$('additionalQrTypes');
+  panel.hidden=!open;more.setAttribute('aria-expanded',String(open));
+  more.querySelector('.more-chevron').textContent=open?'⌃':'⌄';
+  // Keep a selected extra mode reachable even when toggling the section.
+  if(!open && ['whatsapp','location','event'].includes(state.mode))chooseMode('url');
+}
+$('moreQrTypes').addEventListener('click',()=>setMoreTypes($('additionalQrTypes').hidden));
+document.querySelectorAll('input[name="locationMethod"]').forEach(r=>r.addEventListener('change',()=>{
+  const coords=document.querySelector('input[name="locationMethod"]:checked').value==='coordinates';
+  $('locationAddressFields').hidden=coords;$('locationCoordinateFields').hidden=!coords;refresh();
+}));
+document.querySelector('.mode-column').addEventListener('keydown',e=>{
+  if(!e.target.closest('[data-mode-select]'))return;
   if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key))return;
-  e.preventDefault();const tabs=Array.from(document.querySelectorAll('[data-mode-select]'));
-  const i=tabs.findIndex(t=>t.dataset.modeSelect===state.mode);
+  e.preventDefault();const tabs=Array.from(document.querySelectorAll('[data-mode-select]')).filter(t=>!t.closest('[hidden]'));
+  const i=Math.max(0,tabs.findIndex(t=>t===e.target.closest('[data-mode-select]')));
   const next=e.key==='Home'?0:e.key==='End'?tabs.length-1:(i+(e.key==='ArrowRight'||e.key==='ArrowDown'?1:-1)+tabs.length)%tabs.length;
   chooseMode(tabs[next].dataset.modeSelect);tabs[next].focus();
 });
@@ -276,7 +290,7 @@ setupServices();
   res.addEventListener('input',syncDial);syncDial();
  }
  const heading=$('dynamicHeading');
- const titles={url:'Website',file:'Share a file',text:'Text',wifi:'Wi-Fi network',contact:'Contact card',email:'Email address',phone:'Phone number',sms:'SMS message'};
+ const titles={url:'Website',file:'Share a file',text:'Text',wifi:'Wi-Fi network',contact:'Contact card',email:'Email address',phone:'Phone number',sms:'SMS message',whatsapp:'WhatsApp chat',location:'Share a location',event:'Calendar event'};
  if(heading)document.querySelectorAll('[data-mode-select]').forEach(tab=>tab.addEventListener('click',()=>{heading.textContent=titles[tab.dataset.modeSelect]||'Create QR';}));
 }
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/sw.js').catch(()=>{});

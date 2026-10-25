@@ -25,6 +25,17 @@
     if(flagged.length)return {status:'possible',detail:'This URL contains a parameter often used for expiring access. It may be temporary; no reliable expiration date can be verified locally.'};
     return {status:'unknown',detail:'No expiration is declared in the QR code. The destination may change or become unavailable. We cannot verify how long it will remain online.'};
   }
+  function escapeIcs(s) { return String(s).replace(/\\/g,'\\\\').replace(/\r?\n/g,'\\n').replace(/;/g,'\\;').replace(/,/g,'\\,'); }
+  function dateIcs(s) {
+    if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s))throw Error('Choose a valid event date and time.');
+    const d=new Date(s);
+    if(Number.isNaN(d.getTime()) || d.getFullYear()!==Number(s.slice(0,4)) || d.getMonth()+1!==Number(s.slice(5,7)) || d.getDate()!==Number(s.slice(8,10)) || d.getHours()!==Number(s.slice(11,13)) || d.getMinutes()!==Number(s.slice(14,16)))throw Error('Choose a valid local event date and time.');
+    return s.replace(/[-:]/g,'')+'00';
+  }
+  function eventUid(seed) {
+    let hash=2166136261;for(const ch of seed){hash^=ch.codePointAt(0);hash=Math.imul(hash,16777619);}
+    return (hash>>>0).toString(16).padStart(8,'0')+'@qrstudio.invalid';
+  }
   function encodePayload(mode, f) {
     const value=k=>String(f[k]||'').trim();
     if(mode==='url'||mode==='file'){
@@ -59,6 +70,38 @@
     if(mode==='phone'){
       if(!/^[+\d() .-]{4,32}$/.test(value('phone')))throw Error('Enter a valid phone number.');
       return 'tel:'+value('phone').replace(/[() .-]/g,'');
+    }
+    if(mode==='whatsapp'){
+      const number=value('phone').replace(/[\s().-]/g,'');
+      if(!/^\+?[1-9]\d{6,14}$/.test(number))throw Error('Enter a WhatsApp phone number with country code (7–15 digits).');
+      const message=value('message');
+      return 'https://wa.me/'+number.replace(/^\+/,'')+(message?'?text='+encodeURIComponent(message):'');
+    }
+    if(mode==='location'){
+      const method=f.method||'address';let query;
+      if(method==='address'){
+        query=value('address');if(!query)throw Error('Enter an address or place.');
+        if(query.length>500)throw Error('Shorten the location address.');
+      }else if(method==='coordinates'){
+        const lat=value('latitude'),lon=value('longitude');
+        if(!lat||!lon||!/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(lat)||!/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(lon)||Number(lat)<-90||Number(lat)>90||Number(lon)<-180||Number(lon)>180)throw Error('Enter valid latitude (−90 to 90) and longitude (−180 to 180).');
+        query=String(Number(lat))+','+String(Number(lon));
+      }else throw Error('Choose a location method.');
+      return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
+    }
+    if(mode==='event'){
+      const title=value('title');if(!title)throw Error('Enter an event name.');
+      if(title.length>160)throw Error('Shorten the event name.');
+      const start=dateIcs(value('start')),end=dateIcs(value('end'));
+      if(end<=start)throw Error('Event end must be later than event start.');
+      const location=value('location'),description=value('description');
+      const seed=[title,start,end,location,description].join('|');
+      // Floating DATE-TIME values have no fixed timezone; readers use their local interpretation.
+      const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
+      const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//QR Studio//Event QR//EN','BEGIN:VEVENT','UID:'+eventUid(seed),'DTSTAMP:'+stamp,'DTSTART:'+start,'DTEND:'+end,'SUMMARY:'+escapeIcs(title)];
+      if(location)lines.push('LOCATION:'+escapeIcs(location));
+      if(description)lines.push('DESCRIPTION:'+escapeIcs(description));
+      return [...lines,'END:VEVENT','END:VCALENDAR'].join('\r\n');
     }
     if(mode==='sms'){
       if(!/^[+\d() .-]{4,32}$/.test(value('phone')))throw Error('Enter a valid phone number.');
