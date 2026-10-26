@@ -2,10 +2,10 @@ const test=require('node:test');const assert=require('node:assert/strict');const
 const ROOT=path.resolve(__dirname,'..');
 const imp=name=>import('file://'+path.join(ROOT,name));
 const html=fs.readFileSync(path.join(ROOT,'public/index.html'),'utf8');
-test('public commercial design: four tabs, no history/version or default QR',()=>{
+test('public commercial design: five navigation links, no history/version or default QR',()=>{
   assert.equal((html.match(/<nav[^>]+aria-label="Main navigation"/g)||[]).length,1);
   const nav=html.match(/<nav aria-label="Main navigation">(.*?)<\/nav>/)?.[1]||'';
-  assert.equal((nav.match(/<a /g)||[]).length,4);
+  assert.equal((nav.match(/<a /g)||[]).length,5);
   assert.doesNotMatch(html,/class="mode active"|V2\.0|id="history"|saveHistory|clearHistory|FREE &amp; OPEN SOURCE|Pricing/);
   assert.match(html,/<canvas[^>]*id="qrCanvas"[^>]*>/);
   assert.match(html,/id="themeToggle"/);

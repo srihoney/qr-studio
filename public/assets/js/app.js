@@ -334,5 +334,15 @@ setupServices();
  const titles={url:'Website',file:'Share a file',text:'Text',wifi:'Wi-Fi network',contact:'Contact card',email:'Email address',phone:'Phone number',sms:'SMS message',whatsapp:'WhatsApp chat',location:'Share a location',event:'Calendar event'};
  if(heading)document.querySelectorAll('[data-mode-select]').forEach(tab=>tab.addEventListener('click',()=>{heading.textContent=titles[tab.dataset.modeSelect]||'Create QR';}));
 }
+// A guide's "Create QR" link may open a mode without creating data or submitting anything.
+// Only known modes are accepted; unsupported query values leave the editor untouched.
+try {
+  const requested=new URLSearchParams(location.search).get('type');
+  const labels={url:'Website',file:'Share a file',text:'Text',wifi:'Wi-Fi network',contact:'Contact card',email:'Email address',phone:'Phone number',sms:'SMS message',whatsapp:'WhatsApp chat',location:'Share a location',event:'Calendar event'};
+  if(Object.prototype.hasOwnProperty.call(labels,requested)) {
+    chooseMode(requested);
+    const heading=$('dynamicHeading');if(heading)heading.textContent=labels[requested];
+  }
+} catch (_e) {/* Deep-link parsing must never interrupt the generator. */}
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/sw.js').catch(()=>{});
 })();

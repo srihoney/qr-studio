@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /file/
+Disallow: /view/
+
+Sitemap: https://freeqrstudio.pages.dev/sitemap.xml

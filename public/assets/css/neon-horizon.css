@@ -474,3 +474,20 @@ html[data-theme=light] .mode-more:hover {background:#d6e6fc}
 @keyframes heroSignal{0%,100%{opacity:.15;transform:scale(.5)}30%,58%{opacity:.9;transform:scale(1.45)}72%{opacity:.3;transform:scale(.75)}}
 @media(max-width:700px){.hero-landscape .hero-motion{opacity:.48}.hero-signal{opacity:.45}}
 @media(prefers-reduced-motion:reduce){.hero-motion-road,.hero-signal{animation:none!important}.hero-motion-road{stroke-dasharray:none;opacity:.24}.hero-signal{opacity:.3!important}}
+
+/* QR Studio discovery navigation: fit the new Guides link without changing
+   desktop artwork, the QR generator, or the existing large-screen design. */
+@media (min-width:701px) and (max-width:900px) {
+  .site-header {gap:10px!important;flex-wrap:nowrap!important;min-height:69px!important;}
+  .site-header nav {gap:12px!important;width:auto!important;flex-basis:auto!important;order:initial!important;margin-left:auto!important;}
+  .site-header .theme-toggle {margin-left:8px!important;align-self:center!important;}
+}
+@media (max-width:370px) {
+  .site-header nav {
+    flex-wrap:wrap!important;
+    justify-content:flex-start!important;
+    column-gap:16px!important;
+    row-gap:0!important;
+  }
+  .site-header {padding-bottom:4px!important;}
+}
